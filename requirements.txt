@@ -2,4 +2,4 @@ numpy
 scipy
 matplotlib
 pygmo
-heyoka==3.2.0
+heyoka
