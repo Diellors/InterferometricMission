@@ -1,10 +1,5 @@
 # Misioni interferometrik — ESA SpOC 3
 
-Kodi fillestar për optimizimin e tri rasteve me Python. Përkufizimet zyrtare
-janë shkarkuar, pa ndryshime, në `vendor/SpOC3-main`.
-Burimi: https://github.com/esa/SpOC3/tree/main/Challenge%202%20Interferometric%20Mission
-Licencat dhe autorësia ruhen në skedarët origjinalë.
-
 | Rasti | Orbita | Satelitë | Rrjeti | Variabla |
 | --- | --- | --- | --- | --- |
 | easy | DRO | 5 | 11 × 11 | 30 |
