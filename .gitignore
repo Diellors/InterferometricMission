@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.venv/
+results/**
+!results/.gitkeep
+.ipynb_checkpoints/
+esa-spoc3.zip
+.idea/
+vendor/SpOC3-main/Challenge 1 Torso Decompositions/
+vendor/SpOC3-main/Challenge 3 Programmable Cubes/

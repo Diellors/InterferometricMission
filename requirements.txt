@@ -1,5 +1,6 @@
 numpy
 scipy
 matplotlib
-pygmo
+pillow
 heyoka
+pygmo

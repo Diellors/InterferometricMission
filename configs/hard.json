@@ -1,0 +1,6 @@
+{
+  "case": "hard",
+  "population": 120,
+  "generations": 300,
+  "seed": 42
+}
