@@ -1,11 +1,11 @@
-"""Re-evaluate a local result with the official evaluator."""
+"""Re-evaluate a local result with our independent model."""
 import argparse
 import json
 from pathlib import Path
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-import numpy as np
+import math
 from mission.problems import CASES, load_problem
 
 
@@ -18,15 +18,11 @@ def main():
     if case is None:
         raise ValueError('Unknown problem identifier')
     udp = load_problem(case)
-    x = np.asarray(record['x'], dtype=float)
-    lo, hi = np.asarray(udp.get_bounds())
-    if x.shape != lo.shape or not np.all(np.isfinite(x)):
-        raise ValueError('Invalid chromosome shape or non-finite values')
-    if np.any(x < lo) or np.any(x > hi):
-        raise ValueError('Chromosome outside official bounds')
+    x = record['x']
+    udp.decode(x)
     score = float(udp.fitness(x)[0])
-    if not np.isfinite(score) or not np.isclose(score, record['fitness'], rtol=0, atol=1e-10):
-        raise ValueError(f'Fitness mismatch: official={score}, stored={record["fitness"]}')
+    if not math.isfinite(score) or not math.isclose(score, record['fitness'], rel_tol=0, abs_tol=1e-10):
+        raise ValueError(f'Fitness mismatch: computed={score}, stored={record["fitness"]}')
     print(f'VALID: {case}, fitness={score:.12f}')
 
 

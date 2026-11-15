@@ -1,6 +1,2 @@
-numpy
-scipy
-matplotlib
-pillow
-heyoka
-pygmo
+# Optional: the core simulation, optimizer and tests use the standard library.
+matplotlib>=3.8
