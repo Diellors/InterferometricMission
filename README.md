@@ -1,4 +1,8 @@
-# Misioni interferometrik — ESA SpOC 3
+# Misioni interferometrik
+
+Implementim i shkruar për këtë projekt: dinamika CR3BP, integrimi numerik,
+propagimi linear i formacionit, numërimi i baselines dhe Differential Evolution.
+Nuk importohet ose ekzekutohet kod nga repository tjetër.
 
 | Rasti | Orbita | Satelitë | Rrjeti | Variabla |
 | --- | --- | --- | --- | --- |
@@ -6,81 +10,86 @@
 | medium | DRO | 40 | 21 × 21 | 240 |
 | hard | HALO | 40 | 21 × 21 | 240 |
 
-## Çfarë kërkojmë?
+## Nisja në PyCharm ose terminal
 
-Për çdo satelit zgjedhim pozicionin dhe shpejtësinë relative fillestare.
-Vektori ruhet sipas komponentëve: të gjitha dx, pastaj dy, dz, dvx, dvy, dvz.
-Kufijtë zyrtarë janë [-1, 1] për pozicionet dhe [-10, 10] për shpejtësitë.
-Kodi propagandon formacionin për t = 0, T, 2T dhe projekton pozicionet në XY, XZ, YZ.
-Diferencat midis pikave japin baselines; sa më shumë diferenca të dallueshme,
-aq më i madh fill factor.
-
-KUJDES: README zyrtar shkruan -max, por të tri implementimet zyrtare
-kthejnë `[-min(fill_factor)]`. Ky projekt përdor drejtpërdrejt implementimet:
-minimizojmë negativin e shumës së fill factors në matjen më të dobët.
-Një rezultat më negativ është më i mirë.
-Kodi gjithashtu përdor faktorin 1.23 në të dyja matjet pasuese, pa e ngritur në fuqi.
-Pikat përjashtohen nëse cilado koordinatë del jashtë intervalit të hapur (-1, 1),
-pas aplikimit të këtij faktori.
-
-## Instalimi dhe nisja
-
-Nevojitet një instalim funksional Python me varësitë në requirements.txt.
-Disponueshmëria e heyoka/pygmo varet nga platforma; nëse instalimi në Windows
-nuk ofron paketa të përshtatshme, përdor Linux/WSL ose një mjedis conda të përshtatshëm.
+Hap këtë folder si projekt dhe zgjidh një interpreter Python 3.11 ose më të ri.
+Simulimi, optimizimi dhe testet përdorin vetëm bibliotekën standarde të Python-it.
+Për grafiqe instalo opsionalisht Matplotlib:
 
 ```bash
-conda env create -f environment.yml
-conda activate interferometric-mission
-python solve.py --case easy --generations 100 --plot
-python solve.py --case medium --population 120 --generations 300 --plot
-python solve.py --case hard --population 120 --generations 300 --plot
+python -m pip install -r requirements.txt
+python main.py --case easy --population 20 --generations 10
+python main.py --config configs/easy.json --plot
+python main.py --case all --population 5 --generations 1
 ```
 
-Për një provë të shkurtër të të tri rasteve:
+Kaggle dhe GPU nuk kërkohen. Implementimi aktual përdor CPU.
+Në Kaggle klono repository-n dhe ekzekuto të njëjtat komanda;
+për një kopje ekzistuese përdor git pull përpara ekzekutimit.
+Nëse projekti është dataset, duhet përditësuar dataset-i.
+Rezultatet shkruhen nën folderin e projektit, i cili duhet të jetë i shkrueshëm
+(p.sh. /kaggle/working në Kaggle).
 
-```bash
-python solve.py --case all --population 10 --generations 1
-```
-
-Algoritmi fillestar është Differential Evolution me inicializim që zvogëlon
-shpërndarjen orbitale në tri matjet. Ai shërben si bazë krahasimi; rezultatet
-nuk pretendojnë optimum global. Rritja e buxhetit dhe provat me disa seeds
-janë hapat vijues për krahasim eksperimental.
-
-Rezultatet ruhen në results/<case>/seed-<seed>/<case>.json; grafiqet
-krijohen me --plot. JSON përmban vektorin x dhe fitness-in e rivlerësuar
-me kodin zyrtar. Ky është format lokal rezultatesh, jo format dorëzimi në portal.
-Për dorëzim përdor submission_helper të ESA-s sipas tutorialit zyrtar.
-
-## Gjendja e verifikimit
-
-Sintaksa e skedarëve Python dhe tri konfigurimet JSON u kontrolluan me sukses.
-U gjet një Python i përfshirë në pgAdmin, por atij i mungojnë numpy, scipy,
-matplotlib, heyoka dhe pygmo. Optimizimi nuk është ekzekutuar ende dhe nuk ka
-rezultate numerike të verifikuara. Krijo mjedisin conda sipas udhëzimeve më sipër.
-
-## Struktura e projektit
+## Struktura
 
 ```text
-mission/                 # ngarkimi i problemeve dhe algoritmi i optimizimit
-configs/                 # parametrat për easy, medium dhe hard
-scripts/                 # verifikimi i rezultateve me kodin zyrtar
-docs/                    # shpjegimi i metodës dhe eksperimentet
-notebooks/               # analiza interaktive
-results/                 # rezultatet lokale dhe grafiqet (nuk ruhen në Git)
-vendor/SpOC3-main/        # kodi, tutoriali, të dhënat dhe licencat e ESA-s
-solve.py                 # pika e nisjes
-environment.yml          # mjedisi conda
-requirements.txt         # alternativë instalimi me pip
+mission/
+  dynamics.py       # fusha CR3BP, Jacobiani, integrimi adaptiv RK4
+  baselines.py      # rrjeti dhe diferencat e dallueshme
+  problems.py       # tri rastet, propagimi, funksioni i objektivit
+  optimizer.py      # algoritmi ynë Differential Evolution
+  plotting.py       # grafiqet e formacionit dhe baselines
+configs/            # parametrat për tri rastet
+tests/              # teste numerike dhe kombinatorike
+scripts/            # verifikimi i rezultateve
+docs/               # modeli matematikor dhe kufizimet
+notebooks/          # vend për analizat eksperimentale
+results/            # rezultate lokale, të përjashtuara nga Git
+main.py             # pika e nisjes në PyCharm
+solve.py            # pikë alternative nisjeje
 ```
 
-Përdor konfigurimet e gatshme dhe verifiko rezultatin:
+## Modeli
+
+Vektori përmban të gjitha dx, pastaj dy, dz, dvx, dvy dhe dvz.
+Pozicionet kufizohen në [-1,1], shpejtësitë në [-10,10].
+Pozicionet relative propagohen me matricën e tranzicionit të gjendjes të
+modelit të linearizuar rreth orbitës së anijes kryesore.
+
+Në t=0, T dhe 2T projektojmë formacionin në XY, XZ dhe YZ.
+Për çdo plan llogarisim diferencat e dallueshme të koordinatave në rrjet.
+Fill factor është numri i këtyre diferencave pjesëtuar me (2G-1)^2.
+Numërohen të dy drejtimet dhe diferenca zero për një rrjet jo bosh.
+
+Objektivi është negativi i shumës më të vogël të tri fill factors në një
+matje. Rezultati më negativ është më i mirë. Në dy matjet e fundit lejohet
+shtrirje 1.23 herë, jo 1.23 në fuqi të numrit të periudhave.
+Përjashtohen pikat me cilëndo koordinatë jashtë kubit të hapur (-1,1).
+
+Parametrat e orbitave dhe përkufizimi i rasteve janë të dhënat hyrëse të
+sfidës ESA SpOC 3. Nuk pretendojmë se i kemi zbuluar këto orbita.
+Kodi i implementimit është shkruar këtu; kjo nuk nënkupton që algoritmet
+matematikore ose tema e sfidës janë shpikje të projektit.
+Historiku Git përmban versionin e mëparshëm që përdorte kod të jashtëm.
+
+## Testimi dhe rezultatet
 
 ```bash
-python solve.py --config configs/easy.json --plot
+python -m unittest discover -s tests -v
 python scripts/verify_solution.py results/easy/seed-42/easy.json
+python Vizualization.py results/easy/seed-42/easy.json
 ```
 
-Parametrat e komandës kanë përparësi mbi konfigurimin JSON.
-Rinisja me të njëjtin rast dhe seed mbishkruan rezultatin përkatës.
+Testet mbulojnë baselines, kufijtë e rrjetit, Jacobianin numerik,
+zgjidhjen analitike të një ODE-je, konstantën e Jacobi-t, matricën e
+tranzicionit kundrejt trajektoreve të perturbura, si dhe riprodhueshmërinë
+dhe përzgjedhjen e optimizuesit.
+
+Rezultatet ruhen në results/<case>/seed-<seed>/<case>.json.
+Rinisja me të njëjtin rast dhe seed mbishkruan rezultatin.
+Parametrat CLI kanë përparësi mbi konfigurimin JSON.
+JSON është format lokal, jo skedar i garantuar për dorëzim në portal.
+
+Testet dhe ekzekutimet e shkurtra nuk provojnë optimum global ose përputhje
+bit për bit me vlerësues të jashtëm. Formacioni përdor dinamikë relative
+të linearizuar, jo integrim të plotë nonlinear për çdo satelit.

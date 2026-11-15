@@ -1,5 +1,5 @@
 # Analiza eksperimentale
 
-Ky folder është për notebook-et që krahasojnë seeds, konvergjencën dhe
-konfigurimet e satelitëve. Tutoriali origjinal ndodhet te
-`vendor/SpOC3-main/Challenge 2 Interferometric Mission/Tutorial.ipynb`.
+Ky folder është për notebook-et tona: konvergjenca, krahasimi i seeds,
+shpërndarja e satelitëve dhe ndryshimet mes tri rasteve.
+Programi kryesor ekzekutohet edhe pa notebook, Kaggle ose GPU.

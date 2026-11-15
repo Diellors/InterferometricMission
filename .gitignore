@@ -6,5 +6,5 @@ results/**
 .ipynb_checkpoints/
 esa-spoc3.zip
 .idea/
-vendor/SpOC3-main/Challenge 1 Torso Decompositions/
-vendor/SpOC3-main/Challenge 3 Programmable Cubes/
+vendor/
+.runtime/
