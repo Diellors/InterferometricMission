@@ -19,18 +19,61 @@ def initial_population(problem,size,rng):
         population.append([states[i][j] for j in range(6) for i in range(problem.n_sat)])
     return population
 
+
+def mutate_satellite(problem, target, rng, max_displacement=0.2):
+    """Move one satellite, limiting displacement at every observation epoch.
+
+    Work in the same normalized coordinates as the evaluator. Scaling by
+    propagated displacement avoids huge moves along unstable orbital directions.
+    The remaining satellites are copied unchanged.
+    """
+    if not math.isfinite(max_displacement) or max_displacement <= 0:
+        raise ValueError('max_displacement must be finite and positive')
+    satellite = rng.randrange(problem.n_sat)
+    direction = [rng.gauss(0, 1) for _ in range(6)]
+    extent = max(abs(sum(row[j] * direction[j] for j in range(6))) /
+                 (1 if epoch == 0 else problem.inflation_factor)
+                 for epoch, matrix in enumerate(problem.stms) for row in matrix[:3])
+    scale = max_displacement / max(extent, 1e-12)
+    lower, upper = problem.get_bounds()
+    # Shorten the entire step at a bound, preserving the direction and its
+    # propagated displacement limit. Clipping coordinates separately would not.
+    for component, delta in enumerate(direction):
+        index = component * problem.n_sat + satellite
+        if delta > 0:
+            scale = min(scale, (upper[index] - target[index]) / delta)
+        elif delta < 0:
+            scale = min(scale, (lower[index] - target[index]) / delta)
+    trial = target[:]
+    for component, delta in enumerate(direction):
+        index = component * problem.n_sat + satellite
+        trial[index] = min(upper[index], max(lower[index], target[index] + scale * delta))
+    return trial
+
+
 def evolve(problem,population,generations,rng):
-    """DE/rand/1/bin: mutation, forced crossover, synchronous greedy selection."""
+    """Mix DE/rand/1/bin with single-satellite moves and greedy selection.
+
+    One quarter of trials use a local satellite move. Every trial costs one
+    fitness evaluation, so the total remains population * (generations + 1).
+    """
+    if len(population) < 5:
+        raise ValueError('At least five individuals are required')
+    if type(generations) is not int or generations < 0:
+        raise ValueError('generations must be a nonnegative integer')
     lo,hi = problem.get_bounds()
     scores = [problem.fitness(x)[0] for x in population]
     history,evaluations = [min(scores)],len(population)
     for generation in range(generations):
         updated,new_scores = [],[]
         for i,target in enumerate(population):
-            a,b,c = rng.sample([j for j in range(len(population)) if j!=i],3)
-            factor,forced = rng.uniform(0.4,0.9),rng.randrange(len(target))
-            trial = [min(hi[j],max(lo[j],population[a][j]+factor*(population[b][j]-population[c][j])))
-                     if j==forced or rng.random()<0.7 else v for j,v in enumerate(target)]
+            if rng.random() < 0.25:
+                trial = mutate_satellite(problem, target, rng)
+            else:
+                a,b,c = rng.sample([j for j in range(len(population)) if j!=i],3)
+                factor,forced = rng.uniform(0.4,0.9),rng.randrange(len(target))
+                trial = [min(hi[j],max(lo[j],population[a][j]+factor*(population[b][j]-population[c][j])))
+                         if j==forced or rng.random()<0.7 else v for j,v in enumerate(target)]
             score = problem.fitness(trial)[0]
             evaluations += 1
             accept = score<=scores[i]
@@ -55,6 +98,7 @@ def solve(case,args):
     record = {"problem":CASES[case][1],"x":x,"fitness":score,
               "initial_best":history[0],"seed":args.seed,"evaluations":evaluations,
               "generations":args.generations,"history":history,
+              "algorithm":"hybrid-de-single-satellite-v1",
               "model":"independent-cr3bp-linearized-rk4-v1",
               "observation_totals":[o["total"] for o in problem.observations(x)]}
     path = out/f"{case}.json"
