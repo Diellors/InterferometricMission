@@ -1,7 +1,7 @@
 # Misioni interferometrik
 
 Implementim i shkruar për këtë projekt: dinamika CR3BP, integrimi numerik,
-propagimi linear i formacionit, numërimi i baselines dhe Differential Evolution.
+propagimi linear i formacionit, numërimi i baselines dhe kërkim sipas satelitëve.
 Nuk importohet ose ekzekutohet kod nga repository tjetër.
 
 | Rasti | Orbita | Satelitë | Rrjeti | Variabla |
@@ -37,13 +37,14 @@ mission/
   dynamics.py       # fusha CR3BP, Jacobiani, integrimi adaptiv RK4
   baselines.py      # rrjeti dhe diferencat e dallueshme
   problems.py       # tri rastet, propagimi, funksioni i objektivit
-  optimizer.py      # algoritmi ynë Differential Evolution
+  optimizer.py      # kërkimi me gjendje orbitale të realizueshme
+  sampling.py       # drejtimet e kërkimit dhe kufizimet në tri matjet
+  search_state.py   # përditësimi inkremental i baselines
   plotting.py       # grafiqet e formacionit dhe baselines
 configs/            # parametrat për tri rastet
 tests/              # teste numerike dhe kombinatorike
 scripts/            # verifikimi i rezultateve
 docs/               # modeli matematikor dhe kufizimet
-notebooks/          # vend për analizat eksperimentale
 results/            # rezultate lokale, të përjashtuara nga Git
 main.py             # pika e nisjes në PyCharm
 solve.py            # pikë alternative nisjeje
@@ -93,3 +94,20 @@ JSON është format lokal, jo skedar i garantuar për dorëzim në portal.
 Testet dhe ekzekutimet e shkurtra nuk provojnë optimum global ose përputhje
 bit për bit me vlerësues të jashtëm. Formacioni përdor dinamikë relative
 të linearizuar, jo integrim të plotë nonlinear për çdo satelit.
+
+## Përmirësimi i cilësisë
+
+Algoritmi i ri përdor më mirë rrjetin duke shmangur grumbullimin e formacionit
+pranë qendrës. Funksioni i objektivit dhe normalizimi nuk janë ndryshuar.
+Për Easy, kufiri matematikor është -0.142857142857, prandaj -1.5 nuk është i mundur.
+Për krahasimin e matjeve shiko docs/quality_comparison.md.
+
+Për të vazhduar nga një rezultat i ruajtur:
+
+```bash
+python main.py --case hard --population 20 --generations 1000 --seed 42 --resume results/hard/seed-42/hard.json
+```
+
+Ky është kërkim i ri që ruan kandidatin fillestar më të mirë, jo rikthim i
+popullatës së mëparshme. Nëse rruga e daljes përputhet me hyrjen, rezultati
+mbishkruhet vetëm pas përfundimit dhe rivlerësimit të kërkimit.

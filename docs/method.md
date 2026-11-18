@@ -36,13 +36,31 @@ mëparshëm të sfidës. Nuk kemi verifikuar rezultatet kundrejt portalit.
 
 ## Kërkimi
 
-Inicializimi reskalon çdo gjendje të rastësishme që pozicionet relative
-të qëndrojnë brenda rrjetit në të tria matjet.
-DE/rand/1/bin kombinon tre individë të ndryshëm nga objektivi.
-Crossover detyron të paktën një komponent nga mutanti.
-Kufijtë zbatohen me prerje dhe ruajmë kandidatin kur nuk përkeqëson fitness-in.
-Përzgjedhja është sinkrone, prandaj i gjithë brezi lexon popullatën e vjetër.
+Inicializimi përdor gjeometrinë e kufizimeve në të tria matjet.
+Matrica A përmban pjesën pozicionale të matricave të tranzicionit, të
+normalizuara me faktorin e shtrirjes, dhe kufijtë e variablave.
+Faktorizimi Cholesky i A^T A përdoret për të reskaluar drejtimet e kërkimit:
+drejtimet e paqëndrueshme zvogëlohen, kurse drejtimet e qëndrueshme mbeten të gjera.
 
-Ky është algoritëm fillestar. Në HALO, reskalimi mund të grumbullojë
-pikat pranë qendrës dhe të kufizojë cilësinë e kërkimit.
-Krahaso disa seeds dhe buxhete të barabarta vlerësimesh para përfundimeve.
+Algoritmi `feasible-satellite-search-v2` ndryshon vetëm një satelit për provë.
+Kombinon lëvizje përgjatë segmenteve që respektojnë kufizimet, zëvendësime me
+gjendje të reja, eksplorim pranë kufijve dhe kombinim të gjendjeve nga individë
+të ndryshëm. Kandidatët mund të nisen nga individi aktual ose nga më i miri.
+
+Objektivi kryesor mbetet negativi i matjes më të dobët. Vetëm kur ky objektiv
+është i barabartë, përdoret shuma e tri matjeve për të zgjedhur kandidatin.
+Vlerësimi inkremental përditëson numërimet e baselines vetëm për satelitin që
+lëviz. Testet e krahasojnë me llogaritjen e plotë, përfshirë mbivendosjet dhe
+pikat që hyjnë ose dalin nga rrjeti. Normalizimi nuk ka ndryshuar.
+
+`--resume` nis një kërkim të ri nga një rezultat i verifikuar dhe disa mutacione
+pranë tij; nuk rikthen gjendjen e plotë të popullatës ose RNG-së së ekzekutimit
+të mëparshëm. Buxheti i vlerësimeve i përket vetëm ekzekutimit të ri.
+
+## Kufiri i rastit Easy
+
+Me N satelitë, ka maksimumi N(N-1) diferenca të orientuara jo-zero dhe një zero.
+Për N=5 dhe G=11, secili plan ka maksimumi 21/(21^2) = 1/21 fill factor.
+Shuma e tri planeve ka maksimumi 1/7, prandaj fitness >= -1/7 = -0.142857142857.
+Një rezultat që e arrin këtë kufi është optimal për këtë model dhe normalizim.
+Vlera -1.5 është e pamundur për Easy; nuk ndryshojmë shkallën për ta imituar.
