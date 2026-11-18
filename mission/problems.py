@@ -53,6 +53,12 @@ class MissionProblem:
     def fitness(self,x):
         return [-min(o["total"] for o in self.observations(x))]
 
+    def fitness_lower_bound(self):
+        """Counting bound, not necessarily attainable under the orbit dynamics."""
+        area = (2 * self.grid_size - 1) ** 2
+        support = min(area, self.n_sat * (self.n_sat - 1) + 1)
+        return -3 * support / area
+
     def plot(self,x):
         from .plotting import plot_formation
         return plot_formation(self,x)

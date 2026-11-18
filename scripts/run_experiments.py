@@ -19,7 +19,7 @@ from time import perf_counter
 from uuid import uuid4
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from mission.optimizer import evolve, initial_population
+from mission.optimizer import ALGORITHM, evolve, initial_population
 from mission.problems import CASES, ROOT, load_problem
 
 RUN_FIELDS = ['case', 'seed', 'population', 'generations', 'fitness', 'initial_best',
@@ -104,7 +104,7 @@ def run_experiments(cases, seeds, population, generations, output, *, verbose=Fa
                     'initial_best': history[0], 'population': population,
                     'seed': seed, 'generations': generations, 'history': history,
                     'evaluations': evaluations, 'search_seconds': seconds,
-                    'algorithm': 'hybrid-de-single-satellite-v1',
+                    'algorithm': ALGORITHM,
                     'model': 'independent-cr3bp-linearized-rk4-v1',
                     'observation_totals': [item['total'] for item in problem.observations(x)],
                 }

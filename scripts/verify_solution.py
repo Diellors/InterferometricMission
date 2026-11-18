@@ -82,7 +82,7 @@ def validate_metadata(record):
             require_match(history[0], record['initial_best'], 'history initial fitness')
         if 'generations' in record and len(history) != record['generations'] + 1:
             raise ValueError('history length must equal generations + 1')
-    if (record.get('algorithm') == 'hybrid-de-single-satellite-v1' and
+    if (record.get('algorithm') in ('hybrid-de-single-satellite-v1', 'feasible-satellite-search-v2') and
             all(field in record for field in ['evaluations', 'population', 'generations'])):
         expected = record['population'] * (record['generations'] + 1)
         if record['evaluations'] != expected:
