@@ -100,5 +100,82 @@ class FileAndCliTests(unittest.TestCase):
             self.assertNotIn('Traceback', error.getvalue())
 
 
+class MetadataAndObservationTests(unittest.TestCase):
+    def setUp(self):
+        self.record = valid_record()
+        self.record.update({'history': [0., self.record['fitness']], 'initial_best': 0.,
+                            'generations': 1, 'population': 5, 'evaluations': 10,
+                            'seed': 42, 'search_seconds': 0.,
+                            'algorithm': 'hybrid-de-single-satellite-v1',
+                            'observation_totals': [-self.record['fitness']] * 3})
+
+    def test_complete_record_details_and_no_mutation(self):
+        original = copy.deepcopy(self.record)
+        report = verifier.verify_record(self.record)
+        self.assertEqual(self.record, original)
+        self.assertEqual(report['not_recorded'], [])
+        self.assertEqual(report['worst_epoch'], 0)
+        self.assertEqual(len(report['observations']), 3)
+        for item in report['observations']:
+            self.assertEqual(item['remaining_satellites'], 5)
+            self.assertAlmostEqual(item['total'], -self.record['fitness'])
+            for plane in item['planes'].values():
+                self.assertEqual(plane['occupied_cells'], 1)
+                self.assertEqual(plane['baselines'], 1)
+                self.assertAlmostEqual(plane['fill_factor'], 1 / 441)
+
+    def test_minimal_records_all_scenarios_report_missing_metadata(self):
+        for case in verifier.CASES:
+            report = verifier.verify_record(valid_record(case))
+            self.assertEqual(report['case'], case)
+            self.assertIn('history', report['not_recorded'])
+            self.assertIn('observation_totals', report['not_recorded'])
+
+    def test_rejects_inconsistent_history(self):
+        for history in [[], None, 'bad', [float('nan')], [True], [0., -0.2, -0.1],
+                        [0., -0.5], [-0.001, self.record['fitness']], [self.record['fitness']]]:
+            record = copy.deepcopy(self.record)
+            record['history'] = history
+            with self.subTest(history=history), self.assertRaises(ValueError):
+                verifier.validate_record(record)
+
+    def test_rejects_invalid_metadata_and_budget(self):
+        for field, value in [('generations', -1), ('generations', True), ('population', 4),
+                             ('evaluations', -1), ('evaluations', 11), ('seed', '42'),
+                             ('search_seconds', -1), ('search_seconds', float('inf')),
+                             ('initial_best', -1), ('initial_best', 'bad')]:
+            record = copy.deepcopy(self.record)
+            record[field] = value
+            with self.subTest(field=field, value=value), self.assertRaises(ValueError):
+                verifier.validate_record(record)
+
+    def test_unknown_algorithm_does_not_assume_de_budget(self):
+        self.record['algorithm'] = 'another-search'
+        self.record['evaluations'] = 14
+        self.assertEqual(verifier.validate_record(self.record), 'easy')
+
+    def test_rejects_invalid_or_mismatched_observation_totals(self):
+        for totals in [[], [0., 0.], [0., 0., 0., 0.], [0., True, 0.],
+                       [0., float('nan'), 0.], [0., 0., 0.]]:
+            record = copy.deepcopy(self.record)
+            record['observation_totals'] = totals
+            with self.subTest(totals=totals), self.assertRaises(ValueError):
+                verifier.verify_record(record)
+
+    def test_zero_generation_metadata(self):
+        score = self.record['fitness']
+        self.record.update({'history': [score], 'initial_best': score,
+                            'generations': 0, 'evaluations': 5})
+        self.assertTrue(verifier.verify_record(self.record)['valid'])
+
+    def test_cli_json_report_is_parseable(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / 'result.json'
+            path.write_text(json.dumps(self.record), encoding='utf-8')
+            with contextlib.redirect_stdout(io.StringIO()) as output:
+                report = verifier.main([str(path), '--json'])
+            self.assertEqual(json.loads(output.getvalue()), report)
+
+
 if __name__ == '__main__':
     unittest.main()
