@@ -28,6 +28,9 @@ i zgjedhshëm me `--algorithm orbit`. Për SA, population tregon numrin e
 kandidatëve fillestarë dhe të provave për çdo bllok; ka një zinxhir aktiv.
 Pseudokodi, argumentet dhe kompleksiteti janë te `docs/annealing_algorithm.md`.
 
+Për provën SA kundrejt variantit hibrid me përmirësim lokal dhe lëvizje të
+dy satelitëve, shiko `docs/hybrid_algorithm.md` dhe `scripts/compare_hybrid.py`.
+
 Kaggle dhe GPU nuk kërkohen. Implementimi aktual përdor CPU.
 Në Kaggle klono repository-n dhe ekzekuto të njëjtat komanda;
 për një kopje ekzistuese përdor git pull përpara ekzekutimit.
@@ -110,7 +113,7 @@ Objektivat Medium <= -1.71 dhe Hard <= -1.50 janë arritur me SA:
 | Rasti | Fitness i verifikuar |
 | --- | ---: |
 | Medium | -1.7792980368828077 |
-| Hard | -1.5020820939916717 |
+| Hard | -1.5056513979773944 |
 
 Vektorët janë në `solutions/medium.json` dhe `solutions/hard.json`.
 Për verifikimin, parametrat dhe përsëritjen e fazës finale shiko
