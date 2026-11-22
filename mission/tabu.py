@@ -87,3 +87,73 @@ def allowed(is_tabu, candidate_key, best_key):
     return not is_tabu or candidate_key < best_key
 
 
+def adjacent_neighbor(problem, x, satellite, epoch, axis, shift, *, cycles=128,
+                      other_epoch_slack=0, target_offsets=None):
+    """Seek one adjacent projected cell by cyclic metric projections.
+
+    This is a bounded feasibility heuristic, not an exact LP solver. Returning
+    None does not prove infeasibility. A result is returned only after checking
+    every desired cell and all decision bounds.
+    """
+    state = [x[j * problem.n_sat + satellite] for j in range(6)]
+    before = signature(problem, state)
+    if before is None:
+        return None
+    desired = [list(cell) for cell in before]
+    if target_offsets is None:
+        desired[epoch][axis] += shift
+    else:
+        desired[epoch] = [value + offset for value, offset in zip(before[epoch], target_offsets)]
+    if any(not 0 <= value < problem.grid_size for value in desired[epoch]):
+        return None
+    rows, lower = geometry(problem)
+    intervals = []
+    epsilon = 1e-7
+    size, center = problem.grid_size, problem.grid_size // 2
+    for time, point in enumerate(desired):
+        for cell in point:
+            slack = other_epoch_slack if time != epoch else 0
+            first_cell, last_cell = max(0, cell-slack), min(size-1, cell+slack)
+            lo = -MARGIN if first_cell == 0 else 2 * (first_cell-center) / size + epsilon
+            hi = min(MARGIN, 2 * (last_cell+1-center) / size - epsilon)
+            intervals.append((lo, hi))
+    intervals.extend([(-MARGIN, MARGIN)] * 6)
+    normals = []
+    for row in rows:
+        intermediate = [0.] * 6
+        for i in range(6):
+            intermediate[i] = (row[i] - sum(lower[i][j]*intermediate[j] for j in range(i))) / lower[i][i]
+        normal = [0.] * 6
+        for i in range(5, -1, -1):
+            normal[i] = (intermediate[i] - sum(lower[j][i]*normal[j] for j in range(i+1, 6))) / lower[i][i]
+        denominator = sum(a*b for a,b in zip(row, normal))
+        normals.append([v / max(denominator, 1e-15) for v in normal])
+    moved = state[:]
+    for _ in range(cycles):
+        maximum_error = 0.
+        for row, normal, (lo, hi) in zip(rows, normals, intervals):
+            value = sum(a*b for a,b in zip(row, moved))
+            correction = lo-value if value < lo else hi-value if value > hi else 0.
+            maximum_error = max(maximum_error, abs(correction))
+            if correction:
+                moved = [v + correction*d for v,d in zip(moved, normal)]
+        if maximum_error < 1e-10:
+            break
+    for row, (lo, hi) in zip(rows, intervals):
+        value = sum(a*b for a,b in zip(row, moved))
+        if not lo-1e-10 <= value <= hi+1e-10:
+            return None
+    after = signature(problem, moved)
+    if after is None or after[epoch] != tuple(desired[epoch]):
+        return None
+    if any(abs(after[t][j]-before[t][j]) > other_epoch_slack
+           for t in range(problem.n_meas) if t != epoch for j in range(3)):
+        return None
+    trial = x[:]
+    for component, value in enumerate(moved):
+        trial[component * problem.n_sat + satellite] = value
+    # Enforce public decision bounds as well as the projected-cell bands.
+    problem.decode(trial)
+    return trial, before, after
+
+
