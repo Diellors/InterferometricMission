@@ -23,6 +23,11 @@ python main.py --config configs/easy.json --plot
 python main.py --case all --population 5 --generations 1
 ```
 
+Simulated Annealing është algoritmi standard. Varianti i mëparshëm mbetet
+i zgjedhshëm me `--algorithm orbit`. Për SA, population tregon numrin e
+kandidatëve fillestarë dhe të provave për çdo bllok; ka një zinxhir aktiv.
+Pseudokodi, argumentet dhe kompleksiteti janë te `docs/annealing_algorithm.md`.
+
 Kaggle dhe GPU nuk kërkohen. Implementimi aktual përdor CPU.
 Në Kaggle klono repository-n dhe ekzekuto të njëjtat komanda;
 për një kopje ekzistuese përdor git pull përpara ekzekutimit.
@@ -38,6 +43,8 @@ mission/
   baselines.py      # rrjeti dhe diferencat e dallueshme
   problems.py       # tri rastet, propagimi, funksioni i objektivit
   optimizer.py      # kërkimi me gjendje orbitale të realizueshme
+  annealing.py      # Simulated Annealing dhe arkivi i zgjidhjes më të mirë
+  greedy.py         # ndërtimi greedy dhe përmirësimi lokal brenda një liste
   sampling.py       # drejtimet e kërkimit dhe kufizimet në tri matjet
   search_state.py   # përditësimi inkremental i baselines
   plotting.py       # grafiqet e formacionit dhe baselines
@@ -77,8 +84,8 @@ Historiku Git përmban versionin e mëparshëm që përdorte kod të jashtëm.
 
 ```bash
 python -m unittest discover -s tests -v
-python scripts/verify_solution.py results/easy/seed-42/easy.json
-python Vizualization.py results/easy/seed-42/easy.json
+python scripts/verify_solution.py results/annealing/easy/seed-42/easy.json
+python Vizualization.py results/annealing/easy/seed-42/easy.json
 ```
 
 Testet mbulojnë baselines, kufijtë e rrjetit, Jacobianin numerik,
@@ -86,7 +93,8 @@ zgjidhjen analitike të një ODE-je, konstantën e Jacobi-t, matricën e
 tranzicionit kundrejt trajektoreve të perturbura, si dhe riprodhueshmërinë
 dhe përzgjedhjen e optimizuesit.
 
-Rezultatet ruhen në results/<case>/seed-<seed>/<case>.json.
+Rezultatet SA ruhen në results/annealing/<case>/seed-<seed>/<case>.json.
+Varianti orbit ruan rrugën results/<case>/seed-<seed>/<case>.json.
 Rinisja me të njëjtin rast dhe seed mbishkruan rezultatin.
 Parametrat CLI kanë përparësi mbi konfigurimin JSON.
 JSON është format lokal, jo skedar i garantuar për dorëzim në portal.
@@ -97,7 +105,17 @@ të linearizuar, jo integrim të plotë nonlinear për çdo satelit.
 
 ## Përmirësimi i cilësisë
 
-Algoritmi i ri përdor më mirë rrjetin duke shmangur grumbullimin e formacionit
+Për variantin greedy të zhvilluar për lëndën Dizajn dhe Analizë e Algoritmeve,
+shiko `docs/greedy_algorithm.md`: përmban pseudokodin, invariantet, argumentin
+e përfundimit dhe kompleksitetin. Mund ta ekzekutosh veçmas:
+
+```bash
+python scripts/run_greedy.py --case easy --pool-size 80 --max-evaluations 4000 --seed 42
+```
+
+Ky variant nuk zëvendëson automatikisht optimizuesin ekzistues.
+
+Varianti orbital përdor më mirë rrjetin duke shmangur grumbullimin e formacionit
 pranë qendrës. Funksioni i objektivit dhe normalizimi nuk janë ndryshuar.
 Për Easy, kufiri matematikor është -0.142857142857, prandaj -1.5 nuk është i mundur.
 Për krahasimin e matjeve shiko docs/quality_comparison.md.
@@ -105,7 +123,7 @@ Për krahasimin e matjeve shiko docs/quality_comparison.md.
 Për të vazhduar nga një rezultat i ruajtur:
 
 ```bash
-python main.py --case hard --population 20 --generations 1000 --seed 42 --resume results/hard/seed-42/hard.json
+python main.py --algorithm annealing --case hard --population 20 --generations 1000 --seed 42 --resume results/hard/seed-42/hard.json
 ```
 
 Ky është kërkim i ri që ruan kandidatin fillestar më të mirë, jo rikthim i

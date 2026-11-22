@@ -23,11 +23,14 @@ Detajet për secilin seed ruhen në `quality_comparison.csv` pranë këtij dokum
 Për të përsëritur eksperimentin në secilin version:
 
 ```bash
-python scripts/run_experiments.py --cases easy medium hard --seeds 1 2 3 --population 20 --generations 50
+python scripts/run_experiments.py --algorithm orbit --cases easy medium hard --seeds 1 2 3 --population 20 --generations 50
 ```
 
 Koha nuk krahasohet këtu sepse disa matje u kryen ndërkohë që kishte procese
 të tjera aktive. Numri i vlerësimeve është baza e krahasimit.
+
+Tabela i përket variantit orbital v2. Nuk paraqet matje të Simulated Annealing.
+Për SA duhen ekzekutime dhe krahasime të veçanta sipas docs/annealing_algorithm.md.
 
 ## Kërkimet më të gjata
 

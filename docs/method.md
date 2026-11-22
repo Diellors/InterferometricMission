@@ -36,6 +36,10 @@ mëparshëm të sfidës. Nuk kemi verifikuar rezultatet kundrejt portalit.
 
 ## Kërkimi
 
+Ky seksion përshkruan variantin `--algorithm orbit`. Algoritmi standard SA
+shpjegohet veçmas në `annealing_algorithm.md`; variantin greedy e gjen në
+`greedy_algorithm.md`.
+
 Inicializimi përdor gjeometrinë e kufizimeve në të tria matjet.
 Matrica A përmban pjesën pozicionale të matricave të tranzicionit, të
 normalizuara me faktorin e shtrirjes, dhe kufijtë e variablave.
