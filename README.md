@@ -113,7 +113,7 @@ Objektivat Medium <= -1.71 dhe Hard <= -1.50 janë arritur me SA:
 | Rasti | Fitness i verifikuar |
 | --- | ---: |
 | Medium | -1.7792980368828077 |
-| Hard | -1.5056513979773944 |
+| Hard | -1.5139797739440808 |
 
 Vektorët janë në `solutions/medium.json` dhe `solutions/hard.json`.
 Për verifikimin, parametrat dhe përsëritjen e fazës finale shiko
@@ -144,3 +144,18 @@ python main.py --algorithm annealing --case hard --population 20 --generations 1
 Ky është kërkim i ri që ruan kandidatin fillestar më të mirë, jo rikthim i
 popullatës së mëparshme. Nëse rruga e daljes përputhet me hyrjen, rezultati
 mbishkruhet vetëm pas përfundimit dhe rivlerësimit të kërkimit.
+
+## Tabu Search
+
+Hard u përmirësua me Grid-aware Tabu Search nga -1.505651398 në
+-1.513979774. Rezultati i ri është në `solutions/hard.json`; rezultati
+paraprak SA ruhet në `solutions/starts/hard_1_505651.json`.
+Për algoritmin, buxhetin dhe përsëritjen shiko `docs/tabu_algorithm.md`.
+Objektivat -1.515 dhe -1.55 ende nuk janë arritur. ALNS mbetet propozim.
+
+```bash
+python scripts/verify_solution.py solutions/hard.json
+python scripts/run_tabu.py --start solutions/hard.json --target -1.55 --evaluations 10000 --seed 909
+```
+
+Kaluan 93 teste me `python -m unittest discover -s tests -q`.
