@@ -82,17 +82,58 @@ def validate_metadata(record):
             require_match(history[0], record['initial_best'], 'history initial fitness')
         if 'generations' in record and len(history) != record['generations'] + 1:
             raise ValueError('history length must equal generations + 1')
-    if (record.get('algorithm') in ('hybrid-de-single-satellite-v1', 'feasible-satellite-search-v2') and
+    if (record.get('algorithm') in ('hybrid-de-single-satellite-v1', 'feasible-satellite-search-v2',
+                                   'simulated-annealing-v1') and
             all(field in record for field in ['evaluations', 'population', 'generations'])):
         expected = record['population'] * (record['generations'] + 1)
         if record['evaluations'] != expected:
             raise ValueError(f'evaluations must equal population * (generations + 1) = {expected}')
+    if record.get('algorithm') == 'simulated-annealing-v1':
+        validate_annealing(record)
     if 'observation_totals' in record:
         totals = record['observation_totals']
         if not isinstance(totals, list) or len(totals) != 3:
             raise ValueError('observation_totals must contain three numbers')
         for index, value in enumerate(totals):
             finite_number(value, f'observation_totals[{index}]')
+
+
+def validate_annealing(record):
+    details = record.get('annealing')
+    if not isinstance(details, dict):
+        raise ValueError('SA result must contain annealing metadata')
+    for field, minimum in [('iterations', 0), ('record_every', 1),
+                           ('accepted_moves', 0), ('uphill_moves', 0)]:
+        if type(details.get(field)) is not int or details[field] < minimum:
+            raise ValueError(f'annealing.{field} must be an integer >= {minimum}')
+    for field in ['initial_temperature', 'final_temperature']:
+        if finite_number(details.get(field), f'annealing.{field}') <= 0:
+            raise ValueError(f'annealing.{field} must be positive')
+    if details['final_temperature'] > details['initial_temperature']:
+        raise ValueError('Annealing temperature must cool or remain constant')
+    if not details['uphill_moves'] <= details['accepted_moves'] <= details['iterations']:
+        raise ValueError('Annealing move counts exceed the iteration count')
+    for field in ['population', 'generations', 'evaluations', 'history']:
+        if field not in record:
+            raise ValueError(f'SA result must contain {field}')
+    if (details['iterations'] != record['population'] * record['generations'] or
+            details['record_every'] != record['population']):
+        raise ValueError('Annealing iterations and checkpoints do not match the search budget')
+    for field in ['current_history', 'temperatures']:
+        values = details.get(field)
+        if not isinstance(values, list) or len(values) != len(record['history']):
+            raise ValueError(f'annealing.{field} must match history length')
+        for index, value in enumerate(values):
+            finite_number(value, f'annealing.{field}[{index}]')
+    temperatures = details['temperatures']
+    if any(value <= 0 for value in temperatures) or any(b > a + TOLERANCE for a,b in zip(temperatures, temperatures[1:])):
+        raise ValueError('Recorded temperatures must be positive and nonincreasing')
+    require_match(temperatures[0], details['initial_temperature'], 'Initial temperature')
+    if details['iterations'] > 1:
+        require_match(temperatures[-1], details['final_temperature'], 'Final temperature')
+    require_match(details['current_history'][0], record['history'][0], 'Initial chain fitness')
+    if any(current < best - TOLERANCE for current, best in zip(details['current_history'], record['history'])):
+        raise ValueError('Current chain fitness cannot be better than the archived best')
 
 
 def load_record(path):
@@ -122,11 +163,12 @@ def verify_record(record):
         details.append({'epoch': epoch, 'time': problem.times[epoch],
                         'remaining_satellites': item['remaining'], 'total': item['total'],
                         'planes': planes})
+    optional_fields = OPTIONAL_FIELDS + (['annealing'] if record.get('algorithm') == 'simulated-annealing-v1' else [])
     return {'valid': True, 'case': case, 'fitness': score, 'satellites': problem.n_sat,
             'worst_epoch': min(range(len(totals)), key=totals.__getitem__),
             'observations': details,
-            'verified_fields': ['x', 'fitness'] + [key for key in OPTIONAL_FIELDS if key in record],
-            'not_recorded': [key for key in OPTIONAL_FIELDS if key not in record]}
+            'verified_fields': ['x', 'fitness'] + [key for key in optional_fields if key in record],
+            'not_recorded': [key for key in optional_fields if key not in record]}
 
 
 def main(argv=None):
