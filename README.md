@@ -105,6 +105,18 @@ të linearizuar, jo integrim të plotë nonlinear për çdo satelit.
 
 ## Përmirësimi i cilësisë
 
+Objektivat Medium <= -1.71 dhe Hard <= -1.50 janë arritur me SA:
+
+| Rasti | Fitness i verifikuar |
+| --- | ---: |
+| Medium | -1.7792980368828077 |
+| Hard | -1.5020820939916717 |
+
+Vektorët janë në `solutions/medium.json` dhe `solutions/hard.json`.
+Për verifikimin, parametrat dhe përsëritjen e fazës finale shiko
+`docs/achieved_targets.md`. Këto janë rezultate të ngrohta nga gjendje të
+ruajtura, me punë kërkimi paraprak; nuk janë prova të optimumit global.
+
 Për variantin greedy të zhvilluar për lëndën Dizajn dhe Analizë e Algoritmeve,
 shiko `docs/greedy_algorithm.md`: përmban pseudokodin, invariantet, argumentin
 e përfundimit dhe kompleksitetin. Mund ta ekzekutosh veçmas:
