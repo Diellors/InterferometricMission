@@ -19,12 +19,13 @@ from time import perf_counter
 from uuid import uuid4
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from mission.optimizer import ALGORITHM, evolve, initial_population
+from mission.annealing import validate_temperatures
+from mission.optimizer import initial_population, run_search
 from mission.problems import CASES, ROOT, load_problem
 
-RUN_FIELDS = ['case', 'seed', 'population', 'generations', 'fitness', 'initial_best',
+RUN_FIELDS = ['case', 'algorithm', 'seed', 'population', 'generations', 'fitness', 'initial_best',
               'improvement', 'evaluations', 'search_seconds', 'result_file']
-SUMMARY_FIELDS = ['case', 'runs', 'best_seed', 'best_fitness', 'mean_fitness',
+SUMMARY_FIELDS = ['case', 'algorithm', 'runs', 'best_seed', 'best_fitness', 'mean_fitness',
                   'median_fitness', 'stdev_fitness', 'mean_search_seconds',
                   'total_evaluations', 'best_result_file']
 
@@ -32,12 +33,13 @@ SUMMARY_FIELDS = ['case', 'runs', 'best_seed', 'best_fitness', 'mean_fitness',
 def summarize(rows):
     """Compare only runs within each scenario; minimized fitness selects best."""
     summaries = []
-    for case in dict.fromkeys(row['case'] for row in rows):
-        group = [row for row in rows if row['case'] == case]
+    for case, algorithm in dict.fromkeys((row['case'], row.get('algorithm', 'not-recorded')) for row in rows):
+        group = [row for row in rows if row['case'] == case and
+                 row.get('algorithm', 'not-recorded') == algorithm]
         best = min(group, key=lambda row: row['fitness'])
         scores = [row['fitness'] for row in group]
         summaries.append({
-            'case': case, 'runs': len(group), 'best_seed': best['seed'],
+            'case': case, 'algorithm': algorithm, 'runs': len(group), 'best_seed': best['seed'],
             'best_fitness': best['fitness'], 'mean_fitness': statistics.mean(scores),
             'median_fitness': statistics.median(scores),
             'stdev_fitness': statistics.stdev(scores) if len(scores) > 1 else 0.,
@@ -55,7 +57,8 @@ def write_summary(path, rows):
         writer.writerows(summarize(rows))
 
 
-def run_experiments(cases, seeds, population, generations, output, *, verbose=False):
+def run_experiments(cases, seeds, population, generations, output, *, verbose=False,
+                    algorithm='annealing', initial_temperature=0.02, final_temperature=0.0001):
     """Run a serial batch, preserving completed results if a later run fails.
 
     Output must not exist, so earlier batches and single-run results are safe.
@@ -72,6 +75,10 @@ def run_experiments(cases, seeds, population, generations, output, *, verbose=Fa
         raise ValueError('population must be an integer >= 5')
     if type(generations) is not int or generations < 0:
         raise ValueError('generations must be a nonnegative integer')
+    if algorithm not in ('annealing', 'orbit'):
+        raise ValueError('algorithm must be annealing or orbit')
+    if algorithm == 'annealing':
+        validate_temperatures(initial_temperature, final_temperature)
     output = Path(output)
     output.mkdir(parents=True, exist_ok=False)
     rows = []
@@ -90,7 +97,11 @@ def run_experiments(cases, seeds, population, generations, output, *, verbose=Fa
                     if not verbose:
                         sink = stack.enter_context(open(os.devnull, 'w'))
                         stack.enter_context(contextlib.redirect_stdout(sink))
-                    x, score, history, evaluations = evolve(problem, initial, generations, rng)
+                    result = run_search(problem, initial, generations, rng, algorithm=algorithm,
+                                        initial_temperature=initial_temperature,
+                                        final_temperature=final_temperature)
+                    x, score, history = result['x'], result['fitness'], result['history']
+                    evaluations = result['evaluations']
                 seconds = perf_counter() - started
                 checked = problem.fitness(x)[0]
                 if (not math.isfinite(score) or not math.isclose(score, checked, rel_tol=0, abs_tol=1e-12)
@@ -104,13 +115,15 @@ def run_experiments(cases, seeds, population, generations, output, *, verbose=Fa
                     'initial_best': history[0], 'population': population,
                     'seed': seed, 'generations': generations, 'history': history,
                     'evaluations': evaluations, 'search_seconds': seconds,
-                    'algorithm': ALGORITHM,
+                    'algorithm': result['algorithm'],
                     'model': 'independent-cr3bp-linearized-rk4-v1',
                     'observation_totals': [item['total'] for item in problem.observations(x)],
                 }
+                if 'annealing' in result:
+                    record['annealing'] = result['annealing']
                 target.write_text(json.dumps(record, indent=2, allow_nan=False), encoding='utf-8')
                 row = {
-                    'case': case, 'seed': seed, 'population': population,
+                    'case': case, 'algorithm': result['algorithm'], 'seed': seed, 'population': population,
                     'generations': generations, 'fitness': score, 'initial_best': history[0],
                     'improvement': history[0] - score, 'evaluations': evaluations,
                     'search_seconds': seconds, 'result_file': relative.as_posix(),
@@ -131,6 +144,9 @@ def main(argv=None):
     parser.add_argument('--seeds', nargs='+', type=int, default=[1, 2, 3])
     parser.add_argument('--population', type=int, default=20)
     parser.add_argument('--generations', type=int, default=10)
+    parser.add_argument('--algorithm', choices=['annealing', 'orbit'], default='annealing')
+    parser.add_argument('--initial-temperature', type=float, default=0.02)
+    parser.add_argument('--final-temperature', type=float, default=0.0001)
     parser.add_argument('--output', type=Path, help='New output folder; must not already exist')
     parser.add_argument('--verbose', action='store_true', help='Print progress for every generation')
     args = parser.parse_args(argv)
@@ -139,7 +155,9 @@ def main(argv=None):
         ROOT / 'results' / 'experiments' / f'{timestamp}-{uuid4().hex[:8]}')
     try:
         rows = run_experiments(args.cases, args.seeds, args.population, args.generations,
-                               output, verbose=args.verbose)
+                               output, verbose=args.verbose, algorithm=args.algorithm,
+                               initial_temperature=args.initial_temperature,
+                               final_temperature=args.final_temperature)
     except (OSError, ValueError, RuntimeError) as error:
         parser.error(str(error))
     print(f'Batch saved: {output}')

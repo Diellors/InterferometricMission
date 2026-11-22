@@ -103,7 +103,7 @@ class ExperimentTests(unittest.TestCase):
             self.assertFalse(output.exists())
 
     def test_completed_run_survives_later_failure(self):
-        original = runner.evolve
+        original = runner.run_search
         calls = 0
 
         def fail_second(*args, **kwargs):
@@ -114,7 +114,7 @@ class ExperimentTests(unittest.TestCase):
             return original(*args, **kwargs)
 
         folder = self.root / 'partial'
-        with patch.object(runner, 'evolve', side_effect=fail_second), self.assertRaises(RuntimeError):
+        with patch.object(runner, 'run_search', side_effect=fail_second), self.assertRaises(RuntimeError):
             self.run_batch(folder)
         self.assertTrue((folder / 'easy' / 'seed-1' / 'easy.json').is_file())
         with (folder / 'runs.csv').open(newline='', encoding='utf-8') as stream:
