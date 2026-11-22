@@ -90,3 +90,105 @@ def select_group(current, size, mode, rng):
     return population[:size]
 
 
+def search(problem, incumbent, max_evaluations, rng, *, pool_size=6,
+           initial_temperature=0.003, final_temperature=0.00005, target=-1.55,
+           segment_length=25, restart_every=150, min_destroy=4, max_destroy=8, progress=None):
+    """Budget counts initial, destroy and partial insertion scores, not just finals.
+
+    Incomplete repairs are discarded. A final independent full verification is
+    outside the score budget. Progress callbacks receive complete archived states.
+    """
+    for name, value, minimum in [('max_evaluations', max_evaluations, 1),
+                                 ('pool_size', pool_size, 2),
+                                 ('segment_length', segment_length, 1),
+                                 ('restart_every', restart_every, 1),
+                                 ('min_destroy', min_destroy, 1), ('max_destroy', max_destroy, 1)]:
+        if type(value) is not int or value < minimum:
+            raise ValueError(f'{name} must be an integer >= {minimum}')
+    validate_temperatures(initial_temperature, final_temperature)
+    if max_destroy < min_destroy:
+        raise ValueError('max_destroy must be >= min_destroy')
+    if type(target) not in (int, float) or not math.isfinite(target) or target > 0:
+        raise ValueError('target must be finite and nonpositive')
+    current = best = FormationState(problem, incumbent)
+    operators = [(mode, repair) for mode in ['random', 'related', 'redundant']
+                 for repair in ['local', 'wide']]
+    weights, rewards, uses = [1.]*6, [0.]*6, [0]*6
+    total_uses = [0]*6
+    history, checkpoints = [best.key[0]], [1]
+    evaluations, iteration, accepted, uphill, restarts = 1, 0, 0, 0, 0
+    partial_scores = 0
+    while evaluations < max_evaluations and best.key[0] > target:
+        if iteration and iteration % restart_every == 0:
+            current = best
+            restarts += 1
+        index = rng.choices(range(6), weights=weights)[0]
+        mode, repair = operators[index]
+        group = select_group(current, rng.randint(min(min_destroy, problem.n_sat),
+                                                 min(max_destroy, problem.n_sat)), mode, rng)
+        rng.shuffle(group)
+        candidate = remove(current, group)
+        evaluations += 1
+        partial_scores += 1
+        complete = True
+        for satellite in group:
+            if max_evaluations-evaluations < pool_size:
+                complete = False
+                break
+            options = [current.states[satellite]]
+            # The original state is always an option; the other options can
+            # rebuild the satellite rather than merely undoing destruction.
+            for _ in range(pool_size-1):
+                if rng.random() < (0.9 if repair == 'local' else 0.55):
+                    proposal = grid_neighbor(problem, current.x, satellite, rng,
+                                             radius=0.25 if repair == 'local' else 1.2,
+                                             interval_limit=12 if repair == 'local' else 80)
+                    if proposal is not None:
+                        options.append([proposal[0][j*problem.n_sat+satellite] for j in range(6)])
+                        continue
+                options.append(sample_boundary_state(problem, rng) if rng.random() < 0.5
+                               else sample_state(problem, rng))
+            candidate = min((insert(candidate, satellite, state) for state in options), key=lambda s: s.key)
+            evaluations += len(options)
+            partial_scores += len(options)
+        if not complete:
+            break
+        previous_key = current.key
+        fraction = (iteration % restart_every) / max(1, restart_every-1)
+        temperature = initial_temperature * (final_temperature/initial_temperature)**fraction
+        delta = candidate.key[0]-current.key[0]
+        accept = delta <= 0 or rng.random() < acceptance_probability(delta, temperature)
+        reward = 0.05
+        if accept:
+            current = candidate
+            accepted += 1
+            uphill += delta > 0
+            reward = 2. if candidate.key < previous_key else 0.5
+        if candidate.key < best.key:
+            best = candidate
+            reward = 5.
+        uses[index] += 1
+        total_uses[index] += 1
+        rewards[index] += reward
+        iteration += 1
+        history.append(best.key[0])
+        checkpoints.append(evaluations)
+        if iteration % segment_length == 0:
+            weights = [max(0.1, 0.8*w+0.2*r/u) if u else w
+                       for w, r, u in zip(weights, rewards, uses)]
+            rewards, uses = [0.]*6, [0]*6
+            if progress is not None:
+                progress(best, evaluations, iteration)
+    if problem.fitness(best.x)[0] != best.key[0]:
+        raise RuntimeError('ALNS archive failed full verification')
+    return {'x': best.x[:], 'fitness': best.key[0], 'initial_best': history[0],
+            'history': history, 'evaluations': evaluations, 'verification_evaluations': 1,
+            'algorithm': ALGORITHM, 'alns': {'iterations': iteration, 'pool_size': pool_size,
+                'initial_temperature': initial_temperature, 'final_temperature': final_temperature,
+                'target': target, 'segment_length': segment_length, 'restart_every': restart_every,
+                'min_destroy': min_destroy, 'max_destroy': max_destroy,
+                'accepted': accepted, 'uphill_moves': uphill, 'restarts': restarts,
+                'partial_scores': partial_scores, 'weights': weights, 'operator_uses': total_uses,
+                'operators': [f'{a}/{b}' for a, b in operators],
+                'checkpoint_evaluations': checkpoints,
+                'stop_reason': 'target_reached' if best.key[0] <= target else 'evaluation_limit'}}
