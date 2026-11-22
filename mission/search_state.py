@@ -52,6 +52,17 @@ class FormationState:
         changed = [index for index, (old, new) in enumerate(zip(self.states, states)) if old != new]
         if not changed:
             return self
+        if len(changed) == 2:
+            # Reuse the single-satellite update twice. Rebuilding the entire
+            # formation would discard the speed advantage for paired proposals.
+            result = self
+            for satellite in changed:
+                intermediate = result.x[:]
+                for component in range(6):
+                    index = component * self.problem.n_sat + satellite
+                    intermediate[index] = x[index]
+                result = result.replace(intermediate)
+            return result
         if len(changed) != 1:
             return FormationState(self.problem, x)
         satellite = changed[0]
