@@ -14,16 +14,16 @@
   },
   "hard": {
     "target": -1.5,
-    "fitness": -1.5139797739440808,
-    "strict_fitness": -1.5139797739440808,
+    "fitness": -1.5223081499107673,
+    "strict_fitness": -1.5223081499107673,
     "verified": true,
-    "seed": 904,
+    "seed": 1503,
     "file": "solutions/hard.json",
     "remaining": [
       40,
       40,
       40
     ],
-    "algorithm": "grid-aware-tabu-search-v1"
+    "algorithm": "adaptive-large-neighborhood-search-v1"
   }
 }
