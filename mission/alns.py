@@ -62,3 +62,31 @@ def insert(partial, satellite, state):
     return result
 
 
+def select_group(current, size, mode, rng):
+    population = list(range(current.problem.n_sat))
+    if mode == 'random':
+        return rng.sample(population, size)
+    epoch = min(range(current.problem.n_meas), key=current.totals.__getitem__)
+    cells = current.cells[epoch]
+    if mode == 'related':
+        anchor = cells[rng.randrange(len(cells))]
+        if anchor is None:
+            return rng.sample(population, size)
+        population.sort(key=lambda i: sum(abs(a-b) for a, b in zip(cells[i], anchor))
+                        + rng.random()*3 if cells[i] is not None else -1)
+    else:
+        # Low exclusive-baseline contribution is a cheap destroy heuristic.
+        def contribution(i):
+            point = cells[i]
+            if point is None:
+                return -1
+            unique = 0
+            for counts, (a, b) in zip(current.counts[epoch], [(0, 1), (0, 2), (1, 2)]):
+                for j, other in enumerate(cells):
+                    if j != i and other is not None:
+                        unique += counts[(point[a]-other[a], point[b]-other[b])] == 1
+            return unique + rng.random()*5
+        population.sort(key=contribution)
+    return population[:size]
+
+
