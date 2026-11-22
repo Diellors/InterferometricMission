@@ -6,7 +6,7 @@ Fitness më negativ është më i mirë. Nuk janë vlerësime nga portali ESA.
 | Rasti | Objektivi | Fitness i verifikuar | Seed i fazës finale |
 | --- | ---: | ---: | ---: |
 | Medium | <= -1.71 | -1.7792980368828077 | 100 |
-| Hard | <= -1.50 | -1.5020820939916717 | 600 |
+| Hard | <= -1.50 | -1.5056513979773944 | 703 |
 
 Zgjidhjet finale janë në solutions/medium.json dhe solutions/hard.json.
 Përmbajnë vektorin x, historikun real të arkivit, temperaturat dhe lëvizjet
@@ -25,16 +25,16 @@ Në tri matjet, Medium ka respektivisht 40, 39 dhe 40 satelitë brenda rrjetit;
 Hard ka 40 në secilën matje. Përjashtimi i pikave jashtë rrjetit është pjesë
 e funksionit ekzistues të vlerësimit.
 
-## Përsëritja e fazës finale
+## Përsëritja e fazave të kërkimit
 
 Këto janë kërkime nga gjendje të ruajtura, jo rezultate nga zero me një
-buxhet total prej vetëm 10,005 vlerësimesh. Gjendjet fillestare të fazës
-finale janë ruajtur te solutions/starts për t'i bërë provat të përsëritshme.
+buxhet total prej vetëm 10,005 vlerësimesh. Gjendjet fillestare janë ruajtur
+te solutions/starts për t'i bërë fazat të përsëritshme.
 
 | Rasti | Fitness në nisje | Prova SA | Temperatura fillestare | Temperatura finale |
 | --- | ---: | ---: | ---: | ---: |
 | Medium | -1.6722189173111244 | 10,000 | 0.003 | 0.00001 |
-| Hard | -1.494943486020226 | 10,000 | 0.0005 | 0.00001 |
+| Hard: kalimi i parë i objektivit | -1.494943486020226 | 10,000 | 0.0005 | 0.00001 |
 
 Çdo fazë vlerëson fillimisht 5 kandidatë: gjendjen e ruajtur dhe katër
 mutacione pranë saj, me madhësi maksimale zhvendosjeje 0.08.
@@ -55,7 +55,23 @@ Pas shterimit të numrit të provave, rezultati ruhet edhe nëse objektivi
 nuk është arritur. Nuk ka garanci se çdo seed e arrin një objektiv.
 
 Të dy komandat u ekzekutuan përsëri nga kopjet në solutions/starts.
-Vektori x, fitness-i dhe historia dolën identikë me zgjidhjet e publikuara.
+Vektori x, fitness-i dhe historia dolën identikë me rezultatet e asaj faze.
+Rezultati i parë Hard -1.5020820939916717 tani ruhet te
+solutions/starts/hard_1_502082.json.
+
+Një provë e mëvonshme SA, me seed 703, pesë kopje të këtij rekordi si
+popullatë fillestare dhe 10,000 lëvizje, arriti -1.5056513979773944.
+Ndryshe nga seek_targets.py, kjo provë nuk krijon katër mutacione fillestare.
+Për të përsëritur konfigurimin e saktë përdor krahasuesin:
+
+```bash
+python scripts/compare_hybrid.py --start solutions/starts/hard_1_502082.json --seeds 703 --evaluations 10005
+```
+
+Ky ekzekuton edhe kontrollin hibrid. Rezultati i ri erdhi nga SA, ndërsa
+hibridi nuk e përmirësoi rekordin në seed-et 701, 702 dhe 703.
+Tabela e plotë është te hybrid_algorithm.md. Rekordi i ri u rivlerësua
+me integrim 1e-12 dhe ruajti të njëjtin fitness.
 
 Historiku i gjendjeve fillestare ruhet siç është matur. Disa fusha të
 prejardhjes, si resumed_from ose source_artifact, tregojnë folderë lokalë
