@@ -113,7 +113,7 @@ Objektivat Medium <= -1.71 dhe Hard <= -1.50 janë arritur me SA:
 | Rasti | Fitness i verifikuar |
 | --- | ---: |
 | Medium | -1.7792980368828077 |
-| Hard | -1.5139797739440808 |
+| Hard | -1.5223081499107673 |
 
 Vektorët janë në `solutions/medium.json` dhe `solutions/hard.json`.
 Për verifikimin, parametrat dhe përsëritjen e fazës finale shiko
@@ -151,7 +151,7 @@ Hard u përmirësua me Grid-aware Tabu Search nga -1.505651398 në
 -1.513979774. Rezultati i ri është në `solutions/hard.json`; rezultati
 paraprak SA ruhet në `solutions/starts/hard_1_505651.json`.
 Për algoritmin, buxhetin dhe përsëritjen shiko `docs/tabu_algorithm.md`.
-Objektivat -1.515 dhe -1.55 ende nuk janë arritur. ALNS mbetet propozim.
+Në këtë fazë Tabu, objektivat -1.515 dhe -1.55 nuk u arritën. Për përmirësimin vijues me ALNS shiko më poshtë.
 
 ```bash
 python scripts/verify_solution.py solutions/hard.json
@@ -159,3 +159,19 @@ python scripts/run_tabu.py --start solutions/hard.json --target -1.55 --evaluati
 ```
 
 Kaluan 93 teste me `python -m unittest discover -s tests -q`.
+
+## ALNS
+
+ALNS e përmirësoi Hard nga -1.5139797739440808 në **-1.5223081499107673**.
+Rezultati i ri është në `solutions/hard.json`; gjendja hyrëse ruhet në
+`solutions/starts/hard_1_513979.json`. Konfigurimi fitues ndryshon 2–4 satelitë
+dhe provon 16 kandidatë për çdo rindërtim. Kaluan 98 teste dhe rivlerësimi
+me tolerancë orbitale 1e-12 dha të njëjtin fitness. -1.55 ende nuk është arritur.
+
+Shiko `docs/alns_algorithm.md` dhe `docs/alns_experiments.csv` për të katër
+provat, buxhetet dhe kufijtë e krahasimit. Faza fituese riprodhohet me:
+
+```bash
+python scripts/run_alns.py --start solutions/starts/hard_1_513979.json --evaluations 100000 --pool-size 16 --min-destroy 2 --max-destroy 4 --initial-temperature 0.001 --seed 1503 --output results/alns/reproduce-1503
+python scripts/verify_solution.py solutions/hard.json
+```

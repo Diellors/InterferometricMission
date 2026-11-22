@@ -37,7 +37,7 @@ fitness; it does not independently certify the tabu execution metadata.
 
 ## Published Hard experiment
 
-solutions/hard.json contains seed 904, fitness -1.5139797739440808.
+solutions/starts/hard_1_513979.json preserves seed 904, fitness -1.5139797739440808.
 Full re-evaluation with transition-matrix tolerance 1e-12 gives the same score.
 The previous SA result is preserved in solutions/starts/hard_1_505651.json.
 The exact seed-904 input is solutions/starts/hard_tabu_seed901.json; it includes
@@ -46,11 +46,11 @@ for seed 901 is preserved as solutions/starts/hard_tabu_seed900.json.
 
 ```bash
 python scripts/run_tabu.py --start solutions/starts/hard_tabu_seed901.json --seed 904 --evaluations 30000 --target -1.515 --neighbors 32 --tenure 13 --radius 0.8 --intervals 24 --output results/tabu/reproduce-904.json
-python scripts/verify_solution.py solutions/hard.json
+python scripts/verify_solution.py solutions/starts/hard_1_513979.json
 ```
 
 This is a warm-start result after multiple experiments, not a comparison with
 SA under equal total work. The final stage used 30000 scored evaluations plus
 one final verification. Neither -1.515 nor -1.55 has been reached. Subsequent
-trials 905 through 908 did not improve the primary fitness. ALNS is a proposed
-next experiment and is not implemented in this change.
+trials 905 through 908 did not improve the primary fitness. ALNS was proposed after these trials; its later implementation and improved
+record are documented in docs/alns_algorithm.md.
