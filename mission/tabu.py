@@ -82,3 +82,8 @@ def grid_neighbor(problem, x, satellite, rng, radius=0.3, interval_limit=6):
     return trial, before, after
 
 
+def allowed(is_tabu, candidate_key, best_key):
+    """Aspiration overrides tabu only for a strict archive improvement."""
+    return not is_tabu or candidate_key < best_key
+
+
