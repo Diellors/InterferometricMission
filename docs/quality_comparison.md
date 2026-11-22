@@ -34,6 +34,12 @@ Për SA duhen ekzekutime dhe krahasime të veçanta sipas docs/annealing_algorit
 
 ## Kërkimet më të gjata
 
+Rekordet e mëvonshme me SA janë **Medium -1.7792980368828077** dhe
+**Hard -1.5020820939916717**. Vektorët dhe gjendjet fillestare të fazës
+finale janë publikuar nën solutions/. Shiko achieved_targets.md për
+parametrat, rivlerësimin dhe kufijtë e krahasimit të buxhetit.
+Këto nuk e ndryshojnë tabelën historike me 1,020 vlerësime më sipër.
+
 Gjatë zhvillimit të variantit v2, para shtimit të drejtimeve që synojnë një
 koordinatë të matjes, Medium arriti -1.672218917 me popullatë 20, 500 breza
 dhe seed 1 (10,020 vlerësime). Hard arriti -1.436644854 me 1,000 breza,
