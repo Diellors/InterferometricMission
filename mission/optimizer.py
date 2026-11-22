@@ -1,4 +1,4 @@
-"""Our differential evolution optimizer for interferometric formations."""
+"""Run Simulated Annealing or our orbit-aware formation search."""
 import argparse
 import json
 import math
@@ -142,29 +142,57 @@ def evolve(problem,population,generations,rng):
     best = min(range(len(scores)),key=scores.__getitem__)
     return population[best],scores[best][0],history,evaluations
 
+def run_search(problem, population, generations, rng, *, algorithm='annealing',
+               initial_temperature=0.02, final_temperature=0.0001):
+    """Use P*(G+1) scores for both methods; SA uses one chain and P trials/block."""
+    if type(generations) is not int or generations < 0:
+        raise ValueError('generations must be a nonnegative integer')
+    if algorithm == 'annealing':
+        from .annealing import ALGORITHM as SA_ALGORITHM, search
+        result = search(problem, population, len(population) * generations, rng,
+                        initial_temperature=initial_temperature, final_temperature=final_temperature,
+                        record_every=len(population))
+        result['algorithm'] = SA_ALGORITHM
+        return result
+    if algorithm == 'orbit':
+        x, score, history, evaluations = evolve(problem, population, generations, rng)
+        return {'x': x, 'fitness': score, 'initial_best': history[0], 'history': history,
+                'evaluations': evaluations, 'algorithm': ALGORITHM}
+    raise ValueError('algorithm must be annealing or orbit')
+
+
 def solve(case,args):
     problem = load_problem(case)
     rng = random.Random(args.seed)
     initial = initial_population(problem,args.population,rng)
     if getattr(args, 'resume', None):
         initial = resume_population(problem, initial, args.resume, rng)
-    x,score,history,evaluations = evolve(problem,initial,args.generations,rng)
+    result = run_search(problem, initial, args.generations, rng,
+                        algorithm=getattr(args, 'algorithm', 'annealing'),
+                        initial_temperature=getattr(args, 'initial_temperature', 0.02),
+                        final_temperature=getattr(args, 'final_temperature', 0.0001))
+    x, score, history = result['x'], result['fitness'], result['history']
     checked = problem.fitness(x)[0]
     if not math.isfinite(checked) or checked!=score or score>history[0]:
         raise RuntimeError("Result did not pass re-evaluation")
-    out = ROOT/"results"/case/f"seed-{args.seed}"
+    out = ROOT / 'results'
+    if result['algorithm'] != ALGORITHM:
+        out = out / 'annealing'
+    out = out / case / f'seed-{args.seed}'
     out.mkdir(parents=True,exist_ok=True)
     record = {"problem":CASES[case][1],"x":x,"fitness":score,
               "initial_best":history[0],"seed":args.seed,"population":args.population,
-              "evaluations":evaluations,
+              "evaluations":result['evaluations'],
               "generations":args.generations,"history":history,
-              "algorithm":ALGORITHM,
+              "algorithm":result['algorithm'],
               "model":"independent-cr3bp-linearized-rk4-v1",
               "observation_totals":[o["total"] for o in problem.observations(x)]}
+    if 'annealing' in result:
+        record['annealing'] = result['annealing']
     if getattr(args, 'resume', None):
         record['resumed_from'] = str(args.resume)
     path = out/f"{case}.json"
-    path.write_text(json.dumps(record,indent=2),encoding="utf-8")
+    path.write_text(json.dumps(record,indent=2,allow_nan=False),encoding="utf-8")
     print(f"Saved {path}; fitness={score:.9f}",flush=True)
     if args.plot:
         try:
@@ -182,6 +210,9 @@ def main():
     parser.add_argument("--population",type=int)
     parser.add_argument("--generations",type=int)
     parser.add_argument("--seed",type=int)
+    parser.add_argument('--algorithm', choices=['annealing', 'orbit'])
+    parser.add_argument('--initial-temperature', type=float)
+    parser.add_argument('--final-temperature', type=float)
     parser.add_argument('--resume', help='Verified result JSON to use as an incumbent')
     parser.add_argument("--plot",action="store_true")
     args = parser.parse_args()
@@ -194,6 +225,18 @@ def main():
     args.case = args.case if args.case is not None else config.get("case","easy")
     if args.case not in [*CASES,"all"]:
         parser.error("Invalid case")
+    args.algorithm = args.algorithm if args.algorithm is not None else config.get('algorithm', 'annealing')
+    if args.algorithm not in ('annealing', 'orbit'):
+        parser.error('algorithm must be annealing or orbit')
+    for key, default in [('initial_temperature', 0.02), ('final_temperature', 0.0001)]:
+        if getattr(args, key) is None:
+            setattr(args, key, config.get(key, default))
+    if args.algorithm == 'annealing':
+        from .annealing import validate_temperatures
+        try:
+            validate_temperatures(args.initial_temperature, args.final_temperature)
+        except ValueError as error:
+            parser.error(str(error))
     for key,default in [("population",80),("generations",100),("seed",42)]:
         value = getattr(args,key)
         value = config.get(key,default) if value is None else value

@@ -68,7 +68,7 @@ def plot_convergence(history, *, title='Optimization convergence'):
     ax.step(generations, values, where='post', color='steelblue', linewidth=2,
             label='Best fitness')
     ax.scatter([0, generations[-1]], [values[0], values[-1]], color='tomato', zorder=3)
-    ax.set(title=title, xlabel='Generation (0 = initial population)',
+    ax.set(title=title, xlabel='Recorded checkpoint (0 = initial candidates)',
            ylabel='Fitness (lower is better)', xlim=(-0.1, max(1, generations[-1]) + 0.1))
     ax.text(0.98, 0.95, f'Initial: {values[0]:.6f}\nFinal: {values[-1]:.6f}\n'
             f'Improvement: {values[0] - values[-1]:.6f}', transform=ax.transAxes,
