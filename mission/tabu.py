@@ -157,3 +157,103 @@ def adjacent_neighbor(problem, x, satellite, epoch, axis, shift, *, cycles=128,
     return trial, before, after
 
 
+def search(problem, incumbent, max_evaluations, rng, *, neighborhood_size=32,
+           tenure=7, radius=0.3, target=None, interval_limit=6, axis_probability=0., axis_slack=0,
+           diagonal_probability=0.):
+    if type(max_evaluations) is not int or max_evaluations < 1:
+        raise ValueError('max_evaluations must be a positive integer')
+    if type(neighborhood_size) is not int or neighborhood_size < 1:
+        raise ValueError('neighborhood_size must be a positive integer')
+    if type(tenure) is not int or tenure < 1:
+        raise ValueError('tenure must be a positive integer')
+    if type(interval_limit) is not int or interval_limit < 1:
+        raise ValueError('interval_limit must be a positive integer')
+    if not math.isfinite(axis_probability) or not 0 <= axis_probability <= 1:
+        raise ValueError('axis_probability must be between zero and one')
+    if type(axis_slack) is not int or axis_slack < 0:
+        raise ValueError('axis_slack must be a nonnegative integer')
+    if not math.isfinite(diagonal_probability) or not 0 <= diagonal_probability <= 1:
+        raise ValueError('diagonal_probability must be between zero and one')
+    if type(radius) not in (int, float) or not math.isfinite(radius) or radius <= 0:
+        raise ValueError('radius must be finite and positive')
+    if target is not None and (type(target) not in (int, float) or not math.isfinite(target) or target > 0):
+        raise ValueError('target must be a finite nonpositive fitness')
+    current = FormationState(problem, incumbent)
+    best = current
+    history, current_history, checkpoints = [best.key[0]], [current.key[0]], [1]
+    evaluations, iteration, uphill, tabu_rejections, aspirations = 1, 0, 0, 0, 0
+    tabu = {}
+    reason = 'evaluation_limit'
+    while evaluations < max_evaluations:
+        if target is not None and best.key[0] <= target:
+            reason = 'target_reached'
+            break
+        tabu = {key: expiry for key, expiry in tabu.items() if expiry > iteration}
+        chosen, move, count, generated = None, None, 0, 0
+        seen = set()
+        while count < neighborhood_size and evaluations < max_evaluations and generated < 8 * neighborhood_size:
+            generated += 1
+            satellite = rng.randrange(problem.n_sat)
+            proposal = None
+            if axis_probability and rng.random() < axis_probability:
+                epoch = min(range(problem.n_meas), key=current.totals.__getitem__)
+                if rng.random() < 0.2:
+                    epoch = rng.randrange(problem.n_meas)
+                offsets = None
+                if diagonal_probability and rng.random() < diagonal_probability:
+                    offsets = [rng.choice([-1, 0, 1]) for _ in range(3)]
+                    if offsets == [0, 0, 0]:
+                        offsets[rng.randrange(3)] = rng.choice([-1, 1])
+                proposal = adjacent_neighbor(problem, current.x, satellite, epoch,
+                                             rng.randrange(3), rng.choice([-1, 1]),
+                                             other_epoch_slack=axis_slack, target_offsets=offsets)
+            if proposal is None:
+                proposal = grid_neighbor(problem, current.x, satellite, rng, radius, interval_limit)
+            if proposal is None:
+                continue
+            trial, before, after = proposal
+            attribute = (satellite, after)
+            if attribute in seen:
+                continue
+            seen.add(attribute)
+            candidate = current.replace(trial)
+            evaluations += 1
+            count += 1
+            forbidden = tabu.get(attribute, -1) > iteration
+            if not allowed(forbidden, candidate.key, best.key):
+                tabu_rejections += 1
+                continue
+            if chosen is None or candidate.key < chosen.key:
+                chosen, move = candidate, (satellite, before, forbidden)
+            if target is not None and candidate.key[0] <= target:
+                break
+        if count == 0:
+            reason = 'no_grid_neighbors'
+            break
+        if chosen is not None:
+            uphill += int(chosen.key[0] > current.key[0])
+            current = chosen
+            satellite, before, aspirational = move
+            aspirations += int(aspirational)
+            tabu[(satellite, before)] = iteration + tenure + 1
+            if current.key < best.key:
+                best = current
+        iteration += 1
+        history.append(best.key[0])
+        current_history.append(current.key[0])
+        checkpoints.append(evaluations)
+    if target is not None and best.key[0] <= target:
+        reason = 'target_reached'
+    if problem.fitness(best.x)[0] != best.key[0]:
+        raise RuntimeError('Tabu result failed full re-evaluation')
+    return {'x': best.x[:], 'fitness': best.key[0], 'initial_best': history[0],
+            'history': history, 'evaluations': evaluations, 'verification_evaluations': 1,
+            'algorithm': ALGORITHM, 'tabu': {'iterations': iteration, 'tenure': tenure,
+                'neighborhood_size': neighborhood_size, 'radius': radius, 'target': target,
+                'interval_limit': interval_limit,
+                'axis_probability': axis_probability,
+                'axis_slack': axis_slack,
+                'diagonal_probability': diagonal_probability,
+                'uphill_moves': uphill, 'tabu_rejections': tabu_rejections, 'aspirations': aspirations,
+                'current_history': current_history, 'checkpoint_evaluations': checkpoints,
+                'stop_reason': reason}}
