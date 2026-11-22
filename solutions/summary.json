@@ -1,0 +1,28 @@
+{
+  "medium": {
+    "target": -1.71,
+    "fitness": -1.7792980368828077,
+    "strict_fitness": -1.7792980368828077,
+    "verified": true,
+    "seed": 100,
+    "file": "solutions/medium.json",
+    "remaining": [
+      40,
+      39,
+      40
+    ]
+  },
+  "hard": {
+    "target": -1.5,
+    "fitness": -1.5020820939916717,
+    "strict_fitness": -1.5020820939916717,
+    "verified": true,
+    "seed": 600,
+    "file": "solutions/hard.json",
+    "remaining": [
+      40,
+      40,
+      40
+    ]
+  }
+}
