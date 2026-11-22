@@ -14,10 +14,10 @@
   },
   "hard": {
     "target": -1.5,
-    "fitness": -1.5020820939916717,
-    "strict_fitness": -1.5020820939916717,
+    "fitness": -1.5056513979773944,
+    "strict_fitness": -1.5056513979773944,
     "verified": true,
-    "seed": 600,
+    "seed": 703,
     "file": "solutions/hard.json",
     "remaining": [
       40,
