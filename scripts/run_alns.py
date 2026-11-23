@@ -21,6 +21,8 @@ def main(argv=None):
     parser.add_argument('--pool-size', type=int, default=6)
     parser.add_argument('--min-destroy', type=int, default=4)
     parser.add_argument('--max-destroy', type=int, default=8)
+    parser.add_argument('--block-probability', type=float, default=0.,
+                        help='Planar/vertical donor recombination, only for block-separated models')
     parser.add_argument('--seed', type=int, default=1500)
     parser.add_argument('--target', type=float, default=-1.55)
     parser.add_argument('--initial-temperature', type=float, default=0.003)
@@ -46,6 +48,7 @@ def main(argv=None):
         result = search(problem, source['x'], args.evaluations, random.Random(args.seed),
                         pool_size=args.pool_size, target=args.target,
                         min_destroy=args.min_destroy, max_destroy=args.max_destroy,
+                        block_probability=args.block_probability,
                         initial_temperature=args.initial_temperature,
                         final_temperature=args.final_temperature, progress=progress)
         result.update({'problem': CASES[case][1], 'seed': args.seed,
