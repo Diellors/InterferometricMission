@@ -6,7 +6,7 @@ import math
 from pathlib import Path
 import random
 import sys
-from time import perf_counter
+from time import perf_counter, sleep
 from uuid import uuid4
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -20,7 +20,16 @@ def write_json(path, record):
     """Replace a checkpoint atomically so interruption does not leave half JSON."""
     temporary = path.with_suffix(path.suffix + '.tmp')
     temporary.write_text(json.dumps(record, indent=2, allow_nan=False), encoding='utf-8')
-    temporary.replace(path)
+    # Windows readers can briefly deny replacing an open checkpoint. Retain
+    # atomic publication and retry only this transient permission failure.
+    for attempt in range(6):
+        try:
+            temporary.replace(path)
+            return
+        except PermissionError:
+            if attempt == 5:
+                raise
+            sleep(0.02 * (attempt + 1))
 
 
 def run_target_search(case, start, target, output, *, attempts=12, steps=10000,
