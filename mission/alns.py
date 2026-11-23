@@ -1,5 +1,6 @@
 """Adaptive destroy/repair search over feasible satellite formations."""
 import math
+from functools import lru_cache
 
 from .annealing import acceptance_probability, validate_temperatures
 from .sampling import sample_boundary_state, sample_state
@@ -7,6 +8,28 @@ from .search_state import FormationState
 from .tabu import grid_neighbor
 
 ALGORITHM = 'adaptive-large-neighborhood-search-v1'
+
+
+@lru_cache(maxsize=3)
+def supports_block_recombination(problem):
+    """Require exact planar/vertical separation in the computed linear model."""
+    blocks = [{0, 1, 3, 4}, {2, 5}]
+    return all(matrix[i][j] == 0. for matrix in problem.stms for block in blocks
+               for i in block for j in range(6) if j not in block)
+
+
+def block_state(problem, states, rng):
+    """Combine independently signed planar and vertical states from two donors.
+
+    This is valid only for a block-separated linear model with symmetric bounds.
+    Callers still check projected feasibility; donors can include cropped states.
+    """
+    if not supports_block_recombination(problem):
+        raise ValueError('The orbital model does not separate planar and vertical states')
+    planar, vertical = rng.choice(states), rng.choice(states)
+    planar_sign, vertical_sign = rng.choice([-1, 1]), rng.choice([-1, 1])
+    return [vertical[i]*vertical_sign if i in (2, 5) else planar[i]*planar_sign
+            for i in range(6)]
 
 
 def remove(state, satellites):
