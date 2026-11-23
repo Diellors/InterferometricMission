@@ -1,0 +1,2 @@
+# Optional OR-Tools dependency for LP-guided grid search with GLOP.
+ortools==9.15.6755
