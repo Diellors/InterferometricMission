@@ -102,3 +102,21 @@ class CellFeasibilityLP:
         return state
 
 
+def plane_tables(partial, epoch):
+    """Exact single-insertion baseline counts at every plane cell."""
+    points = [point for point in partial.cells[epoch] if point is not None]
+    tables = []
+    size = partial.problem.grid_size
+    for plane, (a, b) in enumerate(PLANES):
+        base = set(partial.counts[epoch][plane])
+        table = {}
+        for x, y in product(range(size), repeat=2):
+            additions = {(0, 0)}
+            for point in points:
+                dx, dy = x-point[a], y-point[b]
+                additions.update([(dx, dy), (-dx, -dy)])
+            table[x, y] = len(base | additions)
+        tables.append(table)
+    return tables
+
+
