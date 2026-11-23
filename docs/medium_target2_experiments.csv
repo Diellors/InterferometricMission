@@ -1,0 +1,13 @@
+method,seed,status,fitness,scores_lower_bound,record
+ALNS,2000,complete,-1.8851873884592505,99994,results/medium_target2/alns2000/result.json
+ALNS,2001,complete,-1.8483045806067815,99999,results/medium_target2/alns2001/result.json
+ALNS,2003,checkpoint_failure,-1.8816180844735277,30978,results/medium_target2/alns2003/checkpoint.json
+ALNS,2004,stopped_by_user,-1.8875669244497324,120275,results/medium_target2/alns2004/checkpoint.json
+ALNS,2005,stopped_by_user,-1.8875669244497324,125507,results/medium_target2/alns2005/checkpoint.json
+Tabu,2002,complete,-1.8304580606781675,30000,results/medium_target2/tabu2002.json
+SA,2100,complete,-1.8875669244497324,15005,results/medium_target2/sa2100/attempt-01.json
+SA,2101,complete,-1.8875669244497324,15005,results/medium_target2/sa2100/attempt-02.json
+SA,2102,complete,-1.8875669244497324,15005,results/medium_target2/sa2100/attempt-03.json
+SA,2103,complete,-1.8875669244497324,15005,results/medium_target2/sa2100/attempt-04.json
+SA,2104,complete,-1.8875669244497324,15005,results/medium_target2/sa2100/attempt-05.json
+SA,2105,complete,-1.8875669244497324,15005,results/medium_target2/sa2100/attempt-06.json

@@ -82,3 +82,15 @@ with seed 1503, --evaluations 100000 --pool-size 16 --min-destroy 2
 --max-destroy 4 --initial-temperature 0.001 to repeat the winning final stage.
 The record's original resumed_from path refers to solutions/hard.json before
 its replacement. Warm-start discovery costs precede the reported ALNS budgets.
+
+## Optional planar/vertical block proposals
+
+`--block-probability` defaults to zero, preserving the original proposal stream.
+For Medium's planar DRO reference, the computed transition matrices have exactly
+zero cross-block entries between (x, y, vx, vy) and (z, vz). The optional operator
+combines independently signed blocks from two donor satellites. This reuses
+feasible projected planar/vertical profiles while changing their association.
+Every proposed combination is still checked at all observation epochs.
+This property concerns the linear model used here; it is not a statement about
+arbitrary nonlinear orbits. Hard's coupled HALO matrices fail the separation
+check and the runner rejects a nonzero block probability for that model.
