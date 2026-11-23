@@ -12,6 +12,33 @@ from scripts.verify_solution import load_record, verify_record
 
 
 class TargetTests(unittest.TestCase):
+    def test_atomic_checkpoint_retries_temporary_windows_lock(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'checkpoint.json'
+            path.write_text('{"old": true}', encoding='utf-8')
+            original_replace = Path.replace
+            calls = []
+            def briefly_locked(temporary, destination):
+                calls.append(destination)
+                if len(calls) == 1:
+                    self.assertEqual(json.loads(path.read_text()), {'old': True})
+                    raise PermissionError('Reader temporarily holds the destination')
+                return original_replace(temporary, destination)
+            with patch.object(Path, 'replace', briefly_locked), patch.object(runner, 'sleep'):
+                runner.write_json(path, {'new': True})
+            self.assertEqual(len(calls), 2)
+            self.assertEqual(json.loads(path.read_text()), {'new': True})
+
+    def test_persistent_checkpoint_lock_preserves_existing_record(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'checkpoint.json'
+            path.write_text('{"old": true}', encoding='utf-8')
+            with patch.object(Path, 'replace', side_effect=PermissionError('Locked')) as replace, \
+                    patch.object(runner, 'sleep'), self.assertRaises(PermissionError):
+                runner.write_json(path, {'new': True})
+            self.assertEqual(replace.call_count, 6)
+            self.assertEqual(json.loads(path.read_text()), {'old': True})
+
     def setUp(self):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
