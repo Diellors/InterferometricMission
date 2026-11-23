@@ -1,16 +1,17 @@
 {
   "medium": {
     "target": -1.71,
-    "fitness": -1.7792980368828077,
-    "strict_fitness": -1.7792980368828077,
+    "fitness": -1.8875669244497324,
+    "strict_fitness": -1.8875669244497324,
     "verified": true,
-    "seed": 100,
+    "seed": 2100,
     "file": "solutions/medium.json",
     "remaining": [
       40,
       39,
       40
-    ]
+    ],
+    "algorithm": "simulated-annealing-v1"
   },
   "hard": {
     "target": -1.5,
