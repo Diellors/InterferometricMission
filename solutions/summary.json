@@ -15,16 +15,15 @@
   },
   "hard": {
     "target": -1.5,
-    "fitness": -1.5223081499107673,
-    "strict_fitness": -1.5223081499107673,
+    "fitness": -1.5365853658536586,
+    "strict_fitness": -1.5365853658536586,
     "verified": true,
-    "seed": 1503,
     "file": "solutions/hard.json",
     "remaining": [
       40,
       40,
       40
     ],
-    "algorithm": "adaptive-large-neighborhood-search-v1"
+    "algorithm": "lp-guided-grid-best-response-v1"
   }
 }
