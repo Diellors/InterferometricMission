@@ -115,7 +115,8 @@ def select_group(current, size, mode, rng):
 
 def search(problem, incumbent, max_evaluations, rng, *, pool_size=6,
            initial_temperature=0.003, final_temperature=0.00005, target=-1.55,
-           segment_length=25, restart_every=150, min_destroy=4, max_destroy=8, progress=None):
+           segment_length=25, restart_every=150, min_destroy=4, max_destroy=8,
+           block_probability=0., progress=None):
     """Budget counts initial, destroy and partial insertion scores, not just finals.
 
     Incomplete repairs are discarded. A final independent full verification is
@@ -131,6 +132,10 @@ def search(problem, incumbent, max_evaluations, rng, *, pool_size=6,
     validate_temperatures(initial_temperature, final_temperature)
     if max_destroy < min_destroy:
         raise ValueError('max_destroy must be >= min_destroy')
+    if type(block_probability) not in (int, float) or not math.isfinite(block_probability) or not 0 <= block_probability <= 1:
+        raise ValueError('block_probability must be between zero and one')
+    if block_probability and not supports_block_recombination(problem):
+        raise ValueError('Block recombination requires a separated orbital model')
     if type(target) not in (int, float) or not math.isfinite(target) or target > 0:
         raise ValueError('target must be finite and nonpositive')
     current = best = FormationState(problem, incumbent)
@@ -162,6 +167,11 @@ def search(problem, incumbent, max_evaluations, rng, *, pool_size=6,
             # The original state is always an option; the other options can
             # rebuild the satellite rather than merely undoing destruction.
             for _ in range(pool_size-1):
+                if block_probability and rng.random() < block_probability:
+                    state = block_state(problem, current.states, rng)
+                    if all(current._cell(state, epoch) is not None for epoch in range(problem.n_meas)):
+                        options.append(state)
+                        continue
                 if rng.random() < (0.9 if repair == 'local' else 0.55):
                     proposal = grid_neighbor(problem, current.x, satellite, rng,
                                              radius=0.25 if repair == 'local' else 1.2,
@@ -210,6 +220,7 @@ def search(problem, incumbent, max_evaluations, rng, *, pool_size=6,
                 'initial_temperature': initial_temperature, 'final_temperature': final_temperature,
                 'target': target, 'segment_length': segment_length, 'restart_every': restart_every,
                 'min_destroy': min_destroy, 'max_destroy': max_destroy,
+                'block_probability': block_probability,
                 'accepted': accepted, 'uphill_moves': uphill, 'restarts': restarts,
                 'partial_scores': partial_scores, 'weights': weights, 'operator_uses': total_uses,
                 'operators': [f'{a}/{b}' for a, b in operators],
