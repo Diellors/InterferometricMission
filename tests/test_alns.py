@@ -6,7 +6,7 @@ import random
 import tempfile
 import unittest
 
-from mission.alns import insert, remove, search
+from mission.alns import block_state, insert, remove, search, supports_block_recombination
 from mission.optimizer import initial_population
 from mission.problems import load_problem
 from mission.search_state import FormationState
@@ -15,6 +15,39 @@ from scripts.verify_solution import load_record, verify_record
 
 
 class AlnsTests(unittest.TestCase):
+    def test_medium_block_recombination_preserves_orbital_feasibility(self):
+        problem = load_problem('medium')
+        rng = random.Random(42)
+        x = initial_population(problem, 5, rng)[0]
+        states = problem.decode(x)
+        original = FormationState(problem, x)
+        self.assertTrue(supports_block_recombination(problem))
+        for _ in range(20):
+            state = block_state(problem, states, rng)
+            for epoch in range(3):
+                self.assertIsNotNone(original._cell(state, epoch))
+            trial = x[:]
+            for j in range(6):
+                trial[j*problem.n_sat] = state[j]
+            problem.decode(trial)
+            self.assertEqual(original.replace(trial).key, FormationState(problem, trial).key)
+
+    def test_block_recombination_is_rejected_for_coupled_hard_model(self):
+        problem = load_problem('hard')
+        self.assertFalse(supports_block_recombination(problem))
+        with self.assertRaises(ValueError):
+            search(problem, [0.]*240, 10, random.Random(1), block_probability=0.5)
+
+    def test_medium_search_with_block_proposals_matches_full_score(self):
+        problem = load_problem('medium')
+        x = initial_population(problem, 5, random.Random(18))[0]
+        result = search(problem, x, 81, random.Random(19), min_destroy=2, max_destroy=3,
+                        pool_size=4, block_probability=0.5, target=-2.)
+        self.assertEqual(result['fitness'], problem.fitness(result['x'])[0])
+        self.assertLessEqual(result['fitness'], problem.fitness(x)[0])
+        self.assertEqual(result['alns']['block_probability'], 0.5)
+        self.assertLessEqual(result['evaluations'], 81)
+
     def test_partial_baselines_and_restore_match_full_evaluator(self):
         for case in ['easy', 'hard']:
             problem = load_problem(case)
@@ -70,7 +103,8 @@ class AlnsTests(unittest.TestCase):
         result = search(problem, [0.]*30, 100, random.Random(1), target=0.)
         self.assertEqual(result['evaluations'], 1)
         for kwargs in [{'pool_size': 1}, {'max_evaluations': True}, {'target': float('nan')},
-                       {'restart_every': 0}, {'segment_length': 0}, {'min_destroy': 9, 'max_destroy': 4}]:
+                       {'restart_every': 0}, {'segment_length': 0}, {'min_destroy': 9, 'max_destroy': 4},
+                       {'block_probability': -0.1}, {'block_probability': float('nan')}]:
             args = dict(max_evaluations=10)
             args.update(kwargs)
             with self.assertRaises(ValueError):
