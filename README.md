@@ -112,7 +112,7 @@ Objektivat Medium <= -1.71 dhe Hard <= -1.50 janë arritur me SA:
 
 | Rasti | Fitness i verifikuar |
 | --- | ---: |
-| Medium | -1.7792980368828077 |
+| Medium | -1.8875669244497324 |
 | Hard | -1.5223081499107673 |
 
 Vektorët janë në `solutions/medium.json` dhe `solutions/hard.json`.
@@ -175,3 +175,15 @@ provat, buxhetet dhe kufijtë e krahasimit. Faza fituese riprodhohet me:
 python scripts/run_alns.py --start solutions/starts/hard_1_513979.json --evaluations 100000 --pool-size 16 --min-destroy 2 --max-destroy 4 --initial-temperature 0.001 --seed 1503 --output results/alns/reproduce-1503
 python scripts/verify_solution.py solutions/hard.json
 ```
+
+## Medium i përmirësuar
+
+Medium arriti **-1.8875669244497324**, nga -1.7792980368828077.
+ALNS dha -1.8851873884592505; një vazhdim SA dha rezultatin final.
+Rezultati ruhet në `solutions/medium.json`, ndërsa të dyja gjendjet hyrëse
+ruhen në `solutions/starts/`. Kaluan 103 teste dhe kontrolli me tolerancë
+1e-12 dha të njëjtën vlerë. Kërkimi u ndal me kërkesën e përdoruesit.
+Objektivi -2.0 nuk u arrit.
+
+Shiko `docs/medium_refinement.md` për komandat e riprodhimit dhe
+`docs/medium_target2_experiments.csv` për provat dhe ndërprerjet.
