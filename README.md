@@ -2,7 +2,8 @@
 
 Implementim i shkruar për këtë projekt: dinamika CR3BP, integrimi numerik,
 propagimi linear i formacionit, numërimi i baselines dhe kërkim sipas satelitëve.
-Nuk importohet ose ekzekutohet kod nga repository tjetër.
+Modeli dhe vlerësuesi nuk importojnë kodin e implementimit të sfidës.
+Shtesa opsionale LP përdor solverin GLOP të OR-Tools si bibliotekë të jashtme.
 
 | Rasti | Orbita | Satelitë | Rrjeti | Variabla |
 | --- | --- | --- | --- | --- |
@@ -13,7 +14,8 @@ Nuk importohet ose ekzekutohet kod nga repository tjetër.
 ## Nisja në PyCharm ose terminal
 
 Hap këtë folder si projekt dhe zgjidh një interpreter Python 3.11 ose më të ri.
-Simulimi, optimizimi dhe testet përdorin vetëm bibliotekën standarde të Python-it.
+Simulimi dhe optimizuesit SA, Tabu dhe ALNS përdorin bibliotekën standarde.
+Varianti LP dhe testet e tij kërkojnë varësinë opsionale OR-Tools.
 Për grafiqe instalo opsionalisht Matplotlib:
 
 ```bash
@@ -108,12 +110,13 @@ të linearizuar, jo integrim të plotë nonlinear për çdo satelit.
 
 ## Përmirësimi i cilësisë
 
-Objektivat Medium <= -1.71 dhe Hard <= -1.50 janë arritur me SA:
+Objektivat Medium <= -1.71 dhe Hard <= -1.50 u arritën fillimisht me SA.
+Tabela tregon rekordet aktuale:
 
 | Rasti | Fitness i verifikuar |
 | --- | ---: |
 | Medium | -1.8875669244497324 |
-| Hard | -1.5223081499107673 |
+| Hard | -1.5365853658536586 |
 
 Vektorët janë në `solutions/medium.json` dhe `solutions/hard.json`.
 Për verifikimin, parametrat dhe përsëritjen e fazës finale shiko
@@ -163,7 +166,7 @@ Kaluan 93 teste me `python -m unittest discover -s tests -q`.
 ## ALNS
 
 ALNS e përmirësoi Hard nga -1.5139797739440808 në **-1.5223081499107673**.
-Rezultati i ri është në `solutions/hard.json`; gjendja hyrëse ruhet në
+Rezultati ALNS ruhet në `solutions/starts/hard_1_522308.json`; gjendja hyrëse ruhet në
 `solutions/starts/hard_1_513979.json`. Konfigurimi fitues ndryshon 2–4 satelitë
 dhe provon 16 kandidatë për çdo rindërtim. Kaluan 98 teste dhe rivlerësimi
 me tolerancë orbitale 1e-12 dha të njëjtin fitness. -1.55 ende nuk është arritur.
@@ -187,3 +190,20 @@ Objektivi -2.0 nuk u arrit.
 
 Shiko `docs/medium_refinement.md` për komandat e riprodhimit dhe
 `docs/medium_target2_experiments.csv` për provat dhe ndërprerjet.
+
+## Hard i përmirësuar me LP
+
+Kërkimi i qelizave sipas fitimit të mbulimit, me realizueshmëri të kontrolluar
+nga programimi linear, e përmirësoi Hard nga -1.5223081499107673 në
+**-1.5365853658536586**. Modeli dhe funksioni i vlerësimit janë të njëjtë.
+Të 40 satelitët ruhen në të tri matjet dhe kontrolli me tolerancë 1e-12
+dha të njëjtin rezultat. Kaluan 108 teste në kopjen e izoluar të publikimit.
+
+Rezultati aktual është në `solutions/hard.json`; gjendja fillestare ruhet
+në `solutions/starts/hard_1_522308.json`. Shiko `docs/lp_grid_search.md`
+për algoritmin, kufijtë dhe komandën e saktë të riprodhimit.
+
+```bash
+python -m pip install -r requirements-lp.txt
+python scripts/run_lp_grid_search.py --start solutions/starts/hard_1_522308.json --output results/lp_grid_search/my-run
+```
